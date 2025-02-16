@@ -40,74 +40,98 @@ int main(){
 
     int lmtpointer = 0;
     int valPtr = 0;
-    for(int i = 0; i<line.length();i++){
+    int numsArrSze = 0;
+
+    int i = 0; 
+
+    while(i<line.length()){
         string temp; 
         
-        int j = 0;
         if(isalpha(line[i])){
             //Copy the letter either V or R
             temp += line[i++];
-            j++;
+           
 
             //Get the element labels v1,r1,r2 etc
             while ((isdigit(line[i])||ispunct(line[i])) &&  i<line.length()){
                 temp += line[i++];
-                j++;
+                
             }
             elementLabels[lmtpointer++] = temp;
             
-           
-
             //Go to the next number 
             while(line[i] == ' ' && i<line.length()){
                 i++;
-            }
-
-            //Get elements until you hit the end of the "row" 
-            while(line[i] != ',' && i<line.length()){
-                string tempNum;
-                
-                //cout<<"test1"<<endl;
-                //cout<<line[i]<<endl;
-                
-                while ((isdigit(line[i])||line[i] == '.') &&  i<line.length()){
-                    tempNum += line[i++];  
-                    
-                }
-                //cout<<tempNum<<endl;
-                numsArr[valPtr++] = stod(tempNum);
-                
-                while(line[i] == ' '){
-                    i++;
-                }
+            
+               
             }
         }
+        
+            //Get elements until you hit the end of the "row" 
+        if((isdigit(line[i])) && i<line.length()){
+            
+            string tempNum;
+                
+            //cout<<"test1"<<endl;
+            //cout<<line[i]<<endl;
+                
+            while ((isdigit(line[i])||line[i] == '.') &&  i<line.length()){
+                tempNum += line[i++];
+            }
+            //cout<<tempNum<<endl;
+            numsArr[valPtr++] = stod(tempNum);
+            numsArrSze++;
+            while(line[i] == ' ' && i<line.length()){
+                i++;
+            }
+        }
+        if((line[i] == ','||line[i] == ' ') && i<line.length()){
+            i++;
+        }
+
     }
     
-    /*looking at the string vector, 
+    /*
+    //looking at the string vector, 
     for(int i = 0;i<countRow;i++){
         cout<<elementLabels[i]<<endl;
     }
     
-    for(int i = 0;i<sizeof(numsArr)+1;i++){
-        cout<<"element:"<<numsArr[i]<<endl;
-    }*/
+    for(int i = 0;i<numsArrSze;i++){
+        cout<<"element:"<<i<<": "<<numsArr[i]<<endl;
+    }
+    cout<<"the nums size is: "<<numsArrSze<<endl;
+    */
 
     //Branches = rowCount
 
     double* nodesCountArr = new double[countRow*2];
+    double* nodesCountCopy = new double[countRow*2];
 
     int j = 0;
-    for(int i = 0; i<sizeof(numsArr)+1;i++){
+    for(int i = 0; i<numsArrSze;i++){
         if( (i+1) % 3 != 0){
             nodesCountArr[j] = numsArr[i];
             j++;
         }
     }
-    int nodesCnt = deduplicate(nodesCountArr,countRow*2);
+    //Copy the arrays to use for node counting
+    for(int i = 0; i<j+1;i++){
+        nodesCountCopy[i] = nodesCountArr[i];
+    }
 
-    cout<<"what?"<<nodesCnt;
-    
+    int nodesCnt = deduplicate(nodesCountCopy,countRow*2);
+    //Kill the program if the circuit is bad
+    if(nodesCnt == -1){
+        return 0;
+    }
+
+    int* incidentMatrix = new int[countRow*nodesCnt];
+
+    for(int i = 0;i<countRow*nodesCnt;i++){
+        //incidentMatrix[i] = 
+    } 
+
     return 0; 
 }   
 
@@ -130,30 +154,40 @@ string getText(string fileName){
     return line; 
 }
 
-//These are used to find the number unique nodes
+//These are used to find the number of unique nodes or kill the program is a circuit is bad
 int deduplicate(double nums[], int n ){
   
     bubbleSort(nums,n);
 
     int dplctCnt = 0;
     
+    /*
+    for(int i = 0; i<n;i++){
+        cout<<nums[i]<<endl;
+    }
+    */
+
     //Count the duplicates
     for(int i = 0; i<n-1;i++){
         if(nums[i] != nums[i-1]){ 
             int j = 1+i;
+            int tempDupCount = 0; 
             while(nums[i] == nums[j] && j<n){
-                dplctCnt +=1;   
+                dplctCnt++; 
+                tempDupCount++; 
                 j++;
+              
+            }
+            if(tempDupCount == 0 || dplctCnt == 0){
+                cout<<"Bad circuit input, no open circuits are allowed"<<endl;
+                return -1;
             }
         }
     }
 
-    //cout<<"dplctCnt"<<dplctCnt<<endl;
-    //cout<<"n is: "<<n<<endl;
     //Create the new array to copy to and determine new size
     int size = n-dplctCnt;
     double newArr[size];
-
 
     int j = 0;
     int i = 0;
