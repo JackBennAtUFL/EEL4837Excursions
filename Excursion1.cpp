@@ -225,7 +225,9 @@ int deduplicate(double nums[], int n ){
     for(int i = 0;i<size;i++){
         nums[i] = newArr[i];
     }
-     
+    
+    delete [] newArr;
+
     return size;
 }
 
