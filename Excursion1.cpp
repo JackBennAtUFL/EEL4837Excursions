@@ -61,9 +61,7 @@ int main(){
             
             //Go to the next number 
             while(line[i] == ' ' && i<line.length()){
-                i++;
-            
-               
+                i++;    
             }
         }
         
@@ -127,10 +125,29 @@ int main(){
     }
 
     int* incidentMatrix = new int[countRow*nodesCnt];
-
+    //Make the matrix all zeros
     for(int i = 0;i<countRow*nodesCnt;i++){
-        //incidentMatrix[i] = 
+        incidentMatrix[i] = 0;
+    }
+    
+    //Create the
+    for(int i = 0;i<countRow*2;i++){
+        if(i % 2 == 0 ){
+            incidentMatrix[(int)(nodesCountArr[i]) * countRow + i/2] = 1; 
+        }
+        else{
+            incidentMatrix[(int)(nodesCountArr[i]) * countRow + i/2] = -1;
+        }
     } 
+    
+    cout<<"incidentMatrix:"<<endl; 
+    for(int i = 0;i<countRow*nodesCnt;i++){
+        cout<<incidentMatrix[i]<<" "; 
+        if((i+1) % 3 == 0){
+            cout<<""<<endl;
+        }
+    }
+
 
     return 0; 
 }   
