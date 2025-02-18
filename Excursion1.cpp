@@ -204,7 +204,8 @@ int deduplicate(double nums[], int n ){
 
     //Create the new array to copy to and determine new size
     int size = n-dplctCnt;
-    double newArr[size];
+    //Fixed
+    double* newArr = new double[size];
 
     int j = 0;
     int i = 0;
