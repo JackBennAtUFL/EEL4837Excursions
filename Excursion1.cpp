@@ -94,12 +94,12 @@ int main(){
     for(int i = 0;i<countRow;i++){
         cout<<elementLabels[i]<<endl;
     }
-    
+    */
     for(int i = 0;i<numsArrSze;i++){
         cout<<"element:"<<i<<": "<<numsArr[i]<<endl;
     }
     cout<<"the nums size is: "<<numsArrSze<<endl;
-    */
+    
 
     //Branches = rowCount
 
@@ -130,7 +130,7 @@ int main(){
         incidentMatrix[i] = 0;
     }
     
-    //Create the
+    //Create the 
     for(int i = 0;i<countRow*2;i++){
         if(i % 2 == 0 ){
             incidentMatrix[(int)(nodesCountArr[i]) * countRow + i/2] = 1; 
@@ -147,6 +147,7 @@ int main(){
             cout<<""<<endl;
         }
     }
+
 
 
     return 0; 
