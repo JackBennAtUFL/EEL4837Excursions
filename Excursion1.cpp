@@ -15,23 +15,16 @@ int deduplicate(double nums[ ], int n );
 
 void bubbleSort(double nums[],int n);
 
+int countRows(string line);
+
 int main(){
 
     //get the string form the file 
     string line = getText("netlist.txt");
     
-    //Parse the netlist here because putting in functions will cause massive problems
-    //With the returned arrays
-
     //Count the number of rows
-    int countRow = 0;
+    int countRow = countRows(line);
     
-    for(int i = 0; i<line.length();i++){
-        if(isalpha(line[i])){
-            countRow++; 
-        }
-    }
-
     //Create a netlist with an order
     vector<string> elementLabels(countRow,"X");
     
@@ -44,11 +37,19 @@ int main(){
 
     int i = 0; 
 
+    //Parse the netlist here because putting in functions will cause massive problems
+    //With the returned arrays
+
     while(i<line.length()){
         string temp; 
         
         if(isalpha(line[i])){
             //Copy the letter either V or R
+            if(line[i] != 'R' && line[i] != 'V'){
+                cout<<"Bad circuit, check element names for L,C, only use V,R"<<endl;
+                return 0;
+            }
+
             temp += line[i++];
            
 
@@ -95,34 +96,28 @@ int main(){
         cout<<elementLabels[i]<<endl;
     }
     */
-    for(int i = 0;i<numsArrSze;i++){
-        cout<<"element:"<<i<<": "<<numsArr[i]<<endl;
-    }
-    cout<<"the nums size is: "<<numsArrSze<<endl;
-    
-
-    //Branches = rowCount
+    // for(int i = 0;i<numsArrSze;i++){
+    //     cout<<"element:"<<i<<": "<<numsArr[i]<<endl;
+    // }
+    // cout<<"the nums size is: "<<numsArrSze<<endl;
 
     double* nodesCountArr = new double[countRow*2];
+    
+    //Only for deduplicate
     double* nodesCountCopy = new double[countRow*2];
 
     int j = 0;
     for(int i = 0; i<numsArrSze;i++){
         if( (i+1) % 3 != 0){
             nodesCountArr[j] = numsArr[i];
+            nodesCountCopy[j] = nodesCountArr[j];
             j++;
         }
     }
-    //Copy the arrays to use for node counting
-    for(int i = 0; i<j+1;i++){
-        nodesCountCopy[i] = nodesCountArr[i];
-    }
-
+    
     int nodesCnt = deduplicate(nodesCountCopy,countRow*2);
-    //Kill the program if the circuit is bad
-    if(nodesCnt == -1){
-        return 0;
-    }
+
+    delete [] nodesCountCopy;
 
     int* incidentMatrix = new int[countRow*nodesCnt];
     //Make the matrix all zeros
@@ -130,7 +125,7 @@ int main(){
         incidentMatrix[i] = 0;
     }
     
-    //Create the 
+    //Create the incident matrix
     for(int i = 0;i<countRow*2;i++){
         if(i % 2 == 0 ){
             incidentMatrix[(int)(nodesCountArr[i]) * countRow + i/2] = 1; 
@@ -142,12 +137,12 @@ int main(){
     
     cout<<"incidentMatrix:"<<endl; 
     for(int i = 0;i<countRow*nodesCnt;i++){
+        
         cout<<incidentMatrix[i]<<" "; 
-        if((i+1) % 3 == 0){
+        if((i+1) % countRow == 0){
             cout<<""<<endl;
         }
     }
-
 
 
     return 0; 
@@ -175,15 +170,19 @@ string getText(string fileName){
 //These are used to find the number of unique nodes or kill the program is a circuit is bad
 int deduplicate(double nums[], int n ){
   
+    // for(int i = 0; i<n;i++){
+    //     cout<<nums[i]<<endl;
+    // }
+    
     bubbleSort(nums,n);
 
     int dplctCnt = 0;
     
-    /*
-    for(int i = 0; i<n;i++){
-        cout<<nums[i]<<endl;
-    }
-    */
+    
+    // for(int i = 0; i<n;i++){
+    //     cout<<nums[i]<<endl;
+    // }
+    
 
     //Count the duplicates
     for(int i = 0; i<n-1;i++){
@@ -197,7 +196,7 @@ int deduplicate(double nums[], int n ){
               
             }
             if(tempDupCount == 0 || dplctCnt == 0){
-                cout<<"Bad circuit input, no open circuits are allowed"<<endl;
+                throw invalid_argument("Bad circuit, no open circuits are allowed");
                 return -1;
             }
         }
@@ -250,3 +249,14 @@ void bubbleSort(double nums[],int n){
     return;
 }
 
+//Count the number of rows
+int countRows(string line){
+    int countRow = 0;
+        
+    for(int i = 0; i<line.length();i++){
+        if(isalpha(line[i])){
+            countRow++; 
+        }
+    }
+    return countRow; 
+}
