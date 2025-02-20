@@ -25,6 +25,18 @@ double** gen2DArray(int row, int col){
 
 }
 //-----***-----
+double** createidentity(int size ){
+
+    double** identity = gen2DArray(size,size);
+
+    for(int i = 0;i<size;i++){
+        identity[i][i] = 1;
+    }
+    return identity; 
+
+}
+
+
 
 int main(){
 
@@ -33,22 +45,43 @@ int main(){
 
     double** testArr = gen2DArray(rows,col);
 
+    double** testArr2 = gen2DArray(rows,col);
+
+    testArr2[2][1] = 4;
+    testArr2[2][2] = 5;
+    testArr2[4][0] = 7;
+    testArr2[0][0] = 8;
     testArr[2][1] = 2.1;
     testArr[2][2] = 2.2;
     testArr[4][0] = 4.0;
     testArr[0][0] = 0.0;
 
-    cout << testArr[2][1] << endl;
-    cout << testArr[0][0] << endl;
-    cout << testArr[4][0] << endl;
-    cout << testArr[2][2] << endl;
-    cout << testArr[3][1] << endl;
+    double** negated = createidentity(5);
 
-    for(int i = 0; i<rows; i++){
-        delete [] testArr[i];
 
+    // for(int i = 0;i<rows;i++){
+    //     for(int j = 0;j<col;j++){
+    //         cout << testArr2[i][j]<<"   ";
+    //     }
+    //     cout<<endl;
+    // }
+
+    for(int i = 0;i<5;i++){
+        for(int j = 0;j<5;j++){
+            cout << negated[i][j]<<"   ";
+        }
+        cout<<endl;
     }
-    delete [] testArr;
+
+    for (int i = 0; i < rows; i++) {
+        delete[] testArr[i];
+        delete[] testArr2[i];
+        
+    }
+    delete[] testArr;
+    delete[] testArr2;
+    
+
 
 
     return 0;

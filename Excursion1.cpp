@@ -11,11 +11,27 @@ using namespace std;
 
 string getText(string fileName); 
 
-int deduplicate(double nums[ ], int n );
+int deduplicate(double nums[], int n );
 
 void bubbleSort(double nums[],int n);
 
 int countRows(string line);
+
+double** voltageArray(char labels[],double numsArr[],int rows);
+
+double** gen2DArray(int row, int col);
+    
+double** createIncidence(double nodesCountArr[],int &nodes,int branches);
+
+double** concatenateCol(double** intialMatrix,int rows,int columns,double** toConcatenate,int concatColumns);
+
+double** negateMat(double** intialMatrix,int rows,int columns);
+
+double** transpose(double** intialMatrix,int row,int col);
+
+double** iCoefficients(double numsArr[],char labels[],int rows);
+
+double** createSparce(int nodes,int rows);
 
 int main(){
 
@@ -26,10 +42,11 @@ int main(){
     int countRow = countRows(line);
     
     //Create a netlist with an order
-    vector<string> elementLabels(countRow,"X");
+    char* elementLabels = new char[countRow];
     
     //Create a dynamic array for the node labels and elements 
     double* numsArr = new double[countRow*3];
+    
 
     int lmtpointer = 0;
     int valPtr = 0;
@@ -58,7 +75,7 @@ int main(){
                 temp += line[i++];
                 
             }
-            elementLabels[lmtpointer++] = temp;
+            elementLabels[lmtpointer++] = temp[0];
             
             //Go to the next number 
             while(line[i] == ' ' && i<line.length()){
@@ -90,17 +107,6 @@ int main(){
 
     }
     
-    /*
-    //looking at the string vector, 
-    for(int i = 0;i<countRow;i++){
-        cout<<elementLabels[i]<<endl;
-    }
-    */
-    // for(int i = 0;i<numsArrSze;i++){
-    //     cout<<"element:"<<i<<": "<<numsArr[i]<<endl;
-    // }
-    // cout<<"the nums size is: "<<numsArrSze<<endl;
-
     double* nodesCountArr = new double[countRow*2];
     
     //Only for deduplicate
@@ -118,32 +124,17 @@ int main(){
     int nodesCnt = deduplicate(nodesCountCopy,countRow*2);
 
     delete [] nodesCountCopy;
-
-    int* incidentMatrix = new int[countRow*nodesCnt];
-    //Make the matrix all zeros
-    for(int i = 0;i<countRow*nodesCnt;i++){
-        incidentMatrix[i] = 0;
-    }
+   
+    double** incidentMatrix = createIncidence(nodesCountArr,nodesCnt,countRow);
     
-    //Create the incident matrix
-    for(int i = 0;i<countRow*2;i++){
-        if(i % 2 == 0 ){
-            incidentMatrix[(int)(nodesCountArr[i]) * countRow + i/2] = 1; 
-        }
-        else{
-            incidentMatrix[(int)(nodesCountArr[i]) * countRow + i/2] = -1;
-        }
-    } 
-    
-    cout<<"incidentMatrix:"<<endl; 
-    for(int i = 0;i<countRow*nodesCnt;i++){
-        
-        cout<<incidentMatrix[i]<<" "; 
-        if((i+1) % countRow == 0){
-            cout<<""<<endl;
-        }
-    }
+   double** iCoeff = iCoefficients(numsArr,elementLabels,countRow);
 
+   for(int i = 0;i<4;i++){
+        for(int j = 0;j<4;j++){
+            cout << iCoeff[i][j]<<"   ";
+    }
+        cout<<endl;
+    }
 
     return 0; 
 }   
@@ -169,21 +160,11 @@ string getText(string fileName){
 
 //These are used to find the number of unique nodes or kill the program is a circuit is bad
 int deduplicate(double nums[], int n ){
-  
-    // for(int i = 0; i<n;i++){
-    //     cout<<nums[i]<<endl;
-    // }
     
     bubbleSort(nums,n);
 
     int dplctCnt = 0;
     
-    
-    // for(int i = 0; i<n;i++){
-    //     cout<<nums[i]<<endl;
-    // }
-    
-
     //Count the duplicates
     for(int i = 0; i<n-1;i++){
         if(nums[i] != nums[i-1]){ 
@@ -286,3 +267,173 @@ double** gen2DArray(int row, int col){
 
 }
 //-----***-----
+
+double** voltageArray(char labels[],double numsArr[],int rows){
+    
+    int row = 0;
+
+    for(int i = 0;i<rows;i++){
+        
+        //Count the number of voltage sources 
+        if(labels[i] == 'V'){
+            row++;
+        }
+    }
+
+    double** voltageSources = gen2DArray(rows, 1);
+
+    int j = 0; 
+    for(int i = 0;i<rows;i++){
+
+        if(labels[i] == 'V'){
+            voltageSources[j][0] = numsArr[3*i+2];
+            j++;
+        }
+
+    }
+
+    return voltageSources; 
+}
+
+double** createIncidence(double nodeCountArr[],int &nodes,int branches){
+    
+    double** incidentMatrix = gen2DArray(nodes-1,branches);
+    
+    cout<<branches<<endl;
+
+    //Create the incident matrix
+    for(int i = 0;i<branches*2;i++){
+        if(nodeCountArr[i] == 0){
+
+        }
+        else if(i % 2 == 0 ){
+            incidentMatrix[(int)(nodeCountArr[i]-1)][i/2] = 1; 
+        }
+        else{
+            incidentMatrix[(int)(nodeCountArr[i]-1)][i/2] = -1; 
+        }
+    } 
+    nodes--; 
+
+    return incidentMatrix;
+}
+
+
+//Important note, the initial matrix will be to the left and the matrix "to concatenate" will be
+//added on the right
+double** concatenateCol(double** intialMatrix,int rows,int columns,double** toConcatenate,int concatColumns){
+
+    //Create a destination matrix with the right size 
+    double** concatenated = gen2DArray(rows,columns+concatColumns);
+    
+    //copy the intial matrix
+    for(int i = 0;i<rows;i++){
+        for(int j = 0;j<columns;j++){
+                concatenated[i][j] = intialMatrix[i][j];
+        }
+    
+        for(int j = 0;j<concatColumns;j++){
+            concatenated[i][j+columns] = toConcatenate[i][j];
+        }
+    }
+    
+    return concatenated;
+   
+}
+
+//Important note, the initial matrix will be on top and the matrix "to concatenate" will be
+//added on the bottom
+double** concatenateRow(double** intialMatrix,int rows,int columns,double** toConcatenate,int concatRows){
+
+    //Create a destination matrix with the right size 
+    double** concatenated = gen2DArray(rows+concatRows,columns);
+    
+    //copy the intial matrix
+    for(int i = 0;i<columns;i++){
+        for(int j = 0;j<rows;j++){
+                concatenated[i][j] = intialMatrix[i][j];
+        }
+    
+        for(int j = 0;j<rows;j++){
+            concatenated[i][j+rows] = toConcatenate[i][j];
+        }
+    }
+    
+    return concatenated;
+   
+}
+
+//This flips the sign of all non zero array elements
+double** negateMat(double** intialMatrix,int rows,int columns){
+    double** negation = gen2DArray(rows, columns);
+
+    for(int i = 0;i<rows;i++){
+        for(int j = 0;j<columns;j++){
+            //I'm afraid of signed 0 
+            if( -1*intialMatrix[i][j] != 0){
+                negation[i][j]  = -1*intialMatrix[i][j];
+            }
+        }
+    }
+    return negation; 
+
+}
+
+double** transpose(double** intialMatrix,int row,int col){
+    double** transpose = gen2DArray(col, row);
+
+    for(int i = 0;i<row;i++){
+        for(int j = 0;j<col;j++){
+            //I'm afraid of signed 0 
+           
+                transpose[j][i]  = -1*intialMatrix[i][j];
+           
+        }
+    }
+    return transpose; 
+
+}
+
+double** createidentity(int size ){
+
+    double** identity = gen2DArray(size,size);
+
+    for(int i = 0;i<size;i++){
+        identity[i][i] = 1;
+    }
+    return identity; 
+
+}
+
+double** iCoefficients(double numsArr[],char labels[],int rows){
+
+    double** icoeff = gen2DArray(rows,rows);
+    
+    for(int i = 0; i<rows;i++){
+        if(labels[i] == 'R'){
+            icoeff[i][i] = -1*numsArr[3*i+2];
+        }
+    }
+    return icoeff;
+
+}
+
+double** createSparce(double** incident,double** currentCoef,int nodes,int rows){
+  
+    double** leftTop = gen2DArray(nodes,nodes);
+
+    double** leftMiddle = negateMat(transpose(incident,nodes,rows),rows,nodes);
+
+    double** Leftbottom = gen2DArray(nodes,rows);
+    
+    double** middletop = gen2DArray(nodes,rows);
+
+    double** center = createidentity(rows);
+
+    double** middleBottom = createidentity(rows);
+
+    //Right top is just the incident maxtrix
+
+    double** rightMiddle  = gen2DArray(rows,rows);
+
+}
