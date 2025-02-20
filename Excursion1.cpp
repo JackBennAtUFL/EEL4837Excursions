@@ -31,7 +31,7 @@ double** transpose(double** intialMatrix,int row,int col);
 
 double** iCoefficients(double numsArr[],char labels[],int rows);
 
-double** createSparce(int nodes,int rows);
+double** createSparce(double** incident,double** currentCoef,int nodes,int rows);
 
 int main(){
 
@@ -129,10 +129,14 @@ int main(){
     
    double** iCoeff = iCoefficients(numsArr,elementLabels,countRow);
 
-   for(int i = 0;i<4;i++){
-        for(int j = 0;j<4;j++){
-            cout << iCoeff[i][j]<<"   ";
-    }
+   cout<<"here"<<endl;
+    double** sparce = createSparce(incidentMatrix,iCoeff,nodesCnt,countRow);
+    cout<<"here"<<endl;
+
+    for(int i = 0;i<nodesCnt+countRow*2;i++){
+        for(int j = 0;j<nodesCnt+countRow*2;j++){
+            cout <<sparce[i][j]<<" ";
+        }
         cout<<endl;
     }
 
@@ -435,5 +439,26 @@ double** createSparce(double** incident,double** currentCoef,int nodes,int rows)
     //Right top is just the incident maxtrix
 
     double** rightMiddle  = gen2DArray(rows,rows);
+    
 
+    //create the top 3 line of matricies
+    //I will add delete functions I promise (not trying to be windows)
+    double** row1step1 = concatenateCol(leftTop,nodes,nodes,middletop,rows);
+    double** row1 = concatenateCol(row1step1,nodes,nodes+rows,incident,rows);
+
+    //There is an out of matrix bounds error somewhere in this block    
+
+    double** row2step1 = concatenateCol(leftMiddle,rows,nodes,center,rows);
+    double** row2 = concatenateCol(row2step1,rows,nodes+rows,rightMiddle,rows);
+
+    double** row3step1 = concatenateCol(Leftbottom,rows,nodes,middleBottom,rows);
+    double** row3 = concatenateCol(row3step1,rows,nodes+rows,currentCoef,rows);
+
+    //end block
+    cout<<"check here"<<endl;
+
+    double** row1and2 = concatenateRow(row1,nodes,nodes+rows*2,row2,rows);
+    double** sparce = concatenateRow(row1and2,nodes+rows,nodes+rows*2,row3,rows);
+
+    return sparce; 
 }
