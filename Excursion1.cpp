@@ -129,9 +129,8 @@ int main(){
     
    double** iCoeff = iCoefficients(numsArr,elementLabels,countRow);
 
-   cout<<"here"<<endl;
     double** sparce = createSparce(incidentMatrix,iCoeff,nodesCnt,countRow);
-    cout<<"here"<<endl;
+    
 
     for(int i = 0;i<nodesCnt+countRow*2;i++){
         for(int j = 0;j<nodesCnt+countRow*2;j++){
@@ -353,13 +352,14 @@ double** concatenateRow(double** intialMatrix,int rows,int columns,double** toCo
     double** concatenated = gen2DArray(rows+concatRows,columns);
     
     //copy the intial matrix
-    for(int i = 0;i<columns;i++){
-        for(int j = 0;j<rows;j++){
+    for(int i = 0;i<rows;i++){
+        for(int j = 0;j<columns;j++){
                 concatenated[i][j] = intialMatrix[i][j];
         }
-    
-        for(int j = 0;j<rows;j++){
-            concatenated[i][j+rows] = toConcatenate[i][j];
+    }
+    for(int i = 0;i<concatRows;i++){
+        for(int j = 0;j<columns;j++){
+            concatenated[i+rows][j] = toConcatenate[i][j];
         }
     }
     
@@ -425,15 +425,10 @@ double** iCoefficients(double numsArr[],char labels[],int rows){
 double** createSparce(double** incident,double** currentCoef,int nodes,int rows){
   
     double** leftTop = gen2DArray(nodes,nodes);
-
     double** leftMiddle = negateMat(transpose(incident,nodes,rows),rows,nodes);
-
-    double** Leftbottom = gen2DArray(nodes,rows);
-    
+    double** Leftbottom = gen2DArray(rows,nodes);  
     double** middletop = gen2DArray(nodes,rows);
-
     double** center = createidentity(rows);
-
     double** middleBottom = createidentity(rows);
 
     //Right top is just the incident maxtrix
@@ -441,23 +436,34 @@ double** createSparce(double** incident,double** currentCoef,int nodes,int rows)
     double** rightMiddle  = gen2DArray(rows,rows);
     
 
-    //create the top 3 line of matricies
-    //I will add delete functions I promise (not trying to be windows)
+    //This creates 3 rows in the large sparce matrix
+    /*
+    [0    ,0   ,A]
+    [-A^T ,1   ,0]
+    [0    ,M   ,N]
+    */
+
+    //[0    ,0   ,A]
     double** row1step1 = concatenateCol(leftTop,nodes,nodes,middletop,rows);
     double** row1 = concatenateCol(row1step1,nodes,nodes+rows,incident,rows);
-
-    //There is an out of matrix bounds error somewhere in this block    
-
+    //[-A^T ,1   ,0]
     double** row2step1 = concatenateCol(leftMiddle,rows,nodes,center,rows);
     double** row2 = concatenateCol(row2step1,rows,nodes+rows,rightMiddle,rows);
-
-    double** row3step1 = concatenateCol(Leftbottom,rows,nodes,middleBottom,rows);
+    //[0    ,M   ,N]
+    double** row3step1 = concatenateCol(Leftbottom,rows,nodes,center,rows);
     double** row3 = concatenateCol(row3step1,rows,nodes+rows,currentCoef,rows);
 
-    //end block
-    cout<<"check here"<<endl;
-
+    /*
+    [0    ,0   ,A]
+    [-A^T ,1   ,0]
+    */
     double** row1and2 = concatenateRow(row1,nodes,nodes+rows*2,row2,rows);
+    
+    /*
+    [0    ,0   ,A]
+    [-A^T ,1   ,0]
+    [0    ,M   ,N]
+    */
     double** sparce = concatenateRow(row1and2,nodes+rows,nodes+rows*2,row3,rows);
 
     return sparce; 
