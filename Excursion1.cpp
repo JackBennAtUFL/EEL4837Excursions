@@ -33,6 +33,8 @@ double** iCoefficients(double numsArr[],char labels[],int rows);
 
 double** createSparce(double** incident,double** currentCoef,int nodes,int rows);
 
+double** sparceToCSC(double** sparce,int row,int col,int &countElmt);
+
 int main(){
 
     //get the string form the file 
@@ -127,17 +129,32 @@ int main(){
    
     double** incidentMatrix = createIncidence(nodesCountArr,nodesCnt,countRow);
     
-   double** iCoeff = iCoefficients(numsArr,elementLabels,countRow);
+    double** iCoeff = iCoefficients(numsArr,elementLabels,countRow);
 
     double** sparce = createSparce(incidentMatrix,iCoeff,nodesCnt,countRow);
     
+    int countElmt = 0;
 
-    for(int i = 0;i<nodesCnt+countRow*2;i++){
-        for(int j = 0;j<nodesCnt+countRow*2;j++){
+    double** csc = sparceToCSC(sparce,countRow*2+nodesCnt,countRow*2+nodesCnt,countElmt); 
+
+    for(int i = 0;i<countRow*2+nodesCnt;i++){
+        for(int j = 0;j<countRow*2+nodesCnt;j++){
             cout <<sparce[i][j]<<" ";
         }
         cout<<endl;
     }
+
+    cout<<countElmt<<endl;
+
+    for(int i = 0;i<3;i++){
+        for(int j = 0;j<countElmt;j++){
+            cout <<csc[i][j]<<" ";
+        }
+        cout<<endl;
+    }
+
+
+
 
     return 0; 
 }   
@@ -467,4 +484,39 @@ double** createSparce(double** incident,double** currentCoef,int nodes,int rows)
     double** sparce = concatenateRow(row1and2,nodes+rows,nodes+rows*2,row3,rows);
 
     return sparce; 
+}
+
+
+//This converts the matrix to the CSC form which we will use if we want to do the extra credit
+//I passed the element count by reference to "cleverly" return 2 variables without tuples
+double** sparceToCSC(double** sparce,int row,int col,int &countElmt){
+
+    //Count the non 0 elements in the sparce matrix
+    for(int i = 0;i<row;i++){
+        for(int j = 0;j<col;j++){
+            if(sparce[i][j] != 0){
+                countElmt++;
+            }
+        }
+    }
+
+    //Generate destination array for the CSC
+    double** csc = gen2DArray(3,countElmt);
+    
+    
+    //Traverse the sparce and copy elements that are non-zere
+    int cscPoint = 0;
+    for(int i = 0;i<row;i++){
+        for(int j = 0;j<col;j++){
+            if(sparce[i][j] != 0){
+                //row
+                csc[0][cscPoint] = i;
+                //col
+                csc[1][cscPoint] = j;
+                //Value and increment dest column pointer
+                csc[2][cscPoint++] = sparce[i][j];
+            }
+        }
+    }
+    return csc;
 }
