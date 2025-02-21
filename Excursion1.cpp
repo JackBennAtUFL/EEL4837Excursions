@@ -6,6 +6,7 @@
 #include <math.h>
 #include <vector>
 #include <cstdlib>
+#include <iomanip>
 
 using namespace std; 
 
@@ -31,9 +32,11 @@ double** transpose(double** intialMatrix,int row,int col);
 
 double** iCoefficients(double numsArr[],char labels[],int rows);
 
-double** createSparce(double** incident,double** currentCoef,int nodes,int rows);
+double** createSparce(double** incident,double** currentCoef,int nodes,int rows,double** equalsCol);
 
 double** sparceToCSC(double** sparce,int row,int col,int &countElmt);
+
+double** createEqualsColumn(char labels[],double numsArr[],int rows, int nodes);
 
 int main(){
 
@@ -131,23 +134,19 @@ int main(){
     
     double** iCoeff = iCoefficients(numsArr,elementLabels,countRow);
 
-    double** sparce = createSparce(incidentMatrix,iCoeff,nodesCnt,countRow);
+    double** equalsColumn = gen2DArray(countRow*2+nodesCnt,1);
+
+    double** equalsCol = createEqualsColumn(elementLabels,numsArr,countRow,nodesCnt);
+
+    double** sparce = createSparce(incidentMatrix,iCoeff,nodesCnt,countRow,equalsCol);
     
     int countElmt = 0;
 
-    double** csc = sparceToCSC(sparce,countRow*2+nodesCnt,countRow*2+nodesCnt,countElmt); 
-
-    for(int i = 0;i<countRow*2+nodesCnt;i++){
-        for(int j = 0;j<countRow*2+nodesCnt;j++){
-            cout <<sparce[i][j]<<" ";
-        }
-        cout<<endl;
-    }
-
-    cout<<countElmt<<endl;
+    double** csc = sparceToCSC(sparce,countRow*2+nodesCnt,countRow*2+nodesCnt+1,countElmt); 
 
     for(int i = 0;i<3;i++){
         for(int j = 0;j<countElmt;j++){
+            cout <<setw(5);
             cout <<csc[i][j]<<" ";
         }
         cout<<endl;
@@ -415,7 +414,7 @@ double** transpose(double** intialMatrix,int row,int col){
 
 }
 
-double** createidentity(int size ){
+double** createidentity(int size){
 
     double** identity = gen2DArray(size,size);
 
@@ -439,7 +438,7 @@ double** iCoefficients(double numsArr[],char labels[],int rows){
 
 }
 
-double** createSparce(double** incident,double** currentCoef,int nodes,int rows){
+double** createSparce(double** incident,double** currentCoef,int nodes,int rows,double** equalsCol){
   
     double** leftTop = gen2DArray(nodes,nodes);
     double** leftMiddle = negateMat(transpose(incident,nodes,rows),rows,nodes);
@@ -481,7 +480,17 @@ double** createSparce(double** incident,double** currentCoef,int nodes,int rows)
     [-A^T ,1   ,0]
     [0    ,M   ,N]
     */
-    double** sparce = concatenateRow(row1and2,nodes+rows,nodes+rows*2,row3,rows);
+    double** row123 = concatenateRow(row1and2,nodes+rows,nodes+rows*2,row3,rows);
+
+    double** sparce = concatenateCol(row123,nodes+rows*2,nodes+rows*2,equalsCol,1); 
+
+    cout<<endl<<endl<<endl;
+    for(int i = 0;i<rows*2+nodes;i++){
+        for(int j = 0;j<rows*2+nodes+1;j++){
+            cout <<sparce[i][j]<<" ";
+        }
+        cout<<endl;
+    }
 
     return sparce; 
 }
@@ -519,4 +528,19 @@ double** sparceToCSC(double** sparce,int row,int col,int &countElmt){
         }
     }
     return csc;
+}
+
+double** createEqualsColumn(char labels[],double numsArr[],int rows,int nodes){
+
+    double** equalsColumn = gen2DArray(rows*2+nodes,1);
+
+    for(int i = 0;i<rows;i++){
+        if(labels[i] == 'V'){
+            equalsColumn[i+rows+nodes][0] = numsArr[i*3+2];
+        }
+    }
+
+    cout<<"hldgsdlkfhas"<<endl;
+
+    return equalsColumn;
 }
