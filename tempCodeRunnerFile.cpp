@@ -1,6 +1,4 @@
-double** solveCSC(double** sparce,int col,int row, int countElmt){
-
-//     for(int large)
-//         for(int i = 0;i<countElmt)
-
-// }
+for (int i = 0; i < cols-1; i++) {
+            //     delete[] CSC[i];
+            // }
+            // delete[] CSC;

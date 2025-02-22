@@ -38,11 +38,15 @@ double** sparceToCSC(double** sparce,int row,int col,int &countElmt);
 
 double** createEqualsColumn(char labels[],double numsArr[],int rows, int nodes);
 
-double** solveCSC(double** CSC,int col,int row, int countElmt,double** swapTracker);
+double** solveCSC(double** CSC,int col,int row, int &countElmt,double** swapTracker);
 
 void swapRow(double** CSC,int row1index,int row2index,int cols,double** swapTracker);
 
 void sortCSC(double** CSC,int cols);
+
+void deleteCSCzeros(double** CSC,int &col);
+
+void eliminateRow(double** CSC,int topRowIndex,int lowRowIndex,int operationCol,int &cols);
 
 int main(){
 
@@ -155,18 +159,20 @@ int main(){
     for(int i = 0;i<countRow*2+nodesCnt;i++){
         swapTracker[i][0] = i;
     }
-    
 
+
+    swapRow(CSC,0,2,countElmt,swapTracker);
+    //cout here
+
+    eliminateRow(CSC,0,3,0,countElmt);
+    
+    cout<<"sdfghjkl"<<endl<<endl;
     for(int i = 0;i<3;i++){
         for(int j = 0;j<countElmt;j++){
-            cout <<setw(5);
             cout <<CSC[i][j]<<" ";
         }
         cout<<endl;
     }
-
-
-    
 
     return 0; 
 }   
@@ -274,7 +280,6 @@ int countRows(string line){
     return countRow; 
 }
 
-
 //Creates a 2D dynamic array to be used for the matrix math
 //|||||ENSURE TO DELETE ARRAY WHEN FINISHED TO PREVENT MEMORY LEAKS!!!|||||
 //Delete subarrays first then the full array
@@ -349,7 +354,6 @@ double** createIncidence(double nodeCountArr[],int &nodes,int branches){
 
     return incidentMatrix;
 }
-
 
 //Important note, the initial matrix will be to the left and the matrix "to concatenate" will be
 //added on the right
@@ -497,17 +501,35 @@ double** createSparce(double** incident,double** currentCoef,int nodes,int rows,
 
     double** sparce = concatenateCol(row123,nodes+rows*2,nodes+rows*2,equalsCol,1); 
 
-    cout<<endl<<endl<<endl;
-    for(int i = 0;i<rows*2+nodes;i++){
-        for(int j = 0;j<rows*2+nodes+1;j++){
-            cout <<sparce[i][j]<<" ";
+
+    //Take out the trash: this is in here so it can be collapsed
+    do{ 
+        for (int i = 0; i < nodes; i++) {
+            delete[] leftTop[i];
+            delete[] middletop[i];
+            delete[] incident[i];
         }
-        cout<<endl;
-    }
+        for (int i = 0; i < rows; i++) {
+            delete[] Leftbottom[i];
+            delete[] center[i];
+            delete[] middleBottom[i];
+            delete[] leftMiddle[i];
+            delete[] currentCoef[i];
+            delete[] rightMiddle[i];
+        }
+        delete[] Leftbottom;
+        delete[] center;
+        delete[] middleBottom;
+        delete[] leftMiddle;
+        delete[] currentCoef;
+        delete[] rightMiddle;
+        delete[] leftTop;
+        delete[] middletop;
+        delete[] incident;
+    }while(false);
 
     return sparce; 
 }
-
 
 //This converts the matrix to the CSC form which we will use if we want to do the extra credit
 //I passed the element count by reference to "cleverly" return 2 variables without tuples
@@ -556,11 +578,16 @@ double** createEqualsColumn(char labels[],double numsArr[],int rows,int nodes){
     return equalsColumn;
 }
 
-double** solveCSC(double** CSC,int col,int row, int countElmt,double** swapTracker){
+double** solveCSC(double** CSC,int col,int row, int &countElmt,double** swapTracker){
 
     //Check
     int countRow = 0;
-    for(int sweepCol = 0;sweepCol<row;sweepCol++)
+
+    //Ignore for now
+    for(int sweepCol = 0;sweepCol<row;sweepCol++){
+        //look through each row
+        bool gotDiag =false;
+
         for(int sweepRow = countRow; sweepRow<countElmt;sweepRow++){
             if(CSC[sweepRow][sweepCol] != 0){
                 
@@ -568,11 +595,17 @@ double** solveCSC(double** CSC,int col,int row, int countElmt,double** swapTrack
                     if(CSC[sweepRow][i] != 0){
                         swapRow(CSC,sweepRow,i,countElmt,swapTracker);
                     }
+                    //go here if subsequent non zero elements are found in the current column
+                    else if(CSC[sweepRow][i] != 0){
+
+                    }
                 }
                 //Then you go and multiply the rows to perform the elimination, ignore the control logic
             }
         }
+    }
 
+    return CSC;
 }
 
 //Takes the rows to swap and the CSC matrix also the column count of the CSC
@@ -626,4 +659,188 @@ void sortCSC(double** CSC,int cols){
         }
     }
     return;
+}
+
+//Needs a sorted array
+//This takes the row you want to eliminate and the row you want to keep and eliminates a value in the correct column
+//Pass by reference because you might have to add rows when you do the addition/subtraction 
+void eliminateRow(double** CSC,int topRowIndex,int lowRowIndex,int operationCol,int &cols){
+
+    double diagElement = 0; 
+
+    //out<<"Diag El"<<diagElement;
+    //Find the top left element to use
+    for(int i = 0;i<cols;i++){
+        if(CSC[0][i] == topRowIndex && CSC[1][i] == operationCol){
+            diagElement = CSC[2][i];
+        }
+    }
+
+    double multiplicand = 0; 
+    //Find the element to eliminate 
+    for(int i = 0;i<cols;i++){
+        if( CSC[0][i] == lowRowIndex && CSC[1][i] == operationCol){
+            multiplicand = CSC[2][i]/diagElement;
+        }
+    }
+
+    int countCorrectRow = 0;
+    //count the elements with the initial row index
+    for(int i = 0;i<cols;i++){
+        if(CSC[0][i] == topRowIndex){
+            countCorrectRow++; 
+        }
+        if(CSC[0][i] != topRowIndex && countCorrectRow != 0){
+            break; 
+        }
+    }
+    
+    double** copyFixedRow = gen2DArray(3,countCorrectRow);
+    
+    //generate array for the row that is being operated on 
+    int countOperRow = 0;
+    for(int i = 0;i<cols;i++){
+        if(CSC[0][i] == lowRowIndex){
+            countOperRow++; 
+        }
+        if(CSC[0][i] != lowRowIndex && countOperRow != 0){
+            break; 
+        }
+    }
+    
+    double** copyOperRow = gen2DArray(3,countOperRow);
+
+    //Extract the initial row times by the multiplicand and -1 to prepare of addition 
+    int copyPointerFixed =  0;
+    int copyPointerOper =  0;
+
+    for(int i = 0;i<cols;i++){
+        if((int)CSC[0][i] == topRowIndex){
+            copyFixedRow[0][copyPointerFixed] = CSC[0][i];
+            copyFixedRow[1][copyPointerFixed] = CSC[1][i];
+            copyFixedRow[2][copyPointerFixed] = -multiplicand*CSC[2][i];
+            copyPointerFixed++; 
+        }
+        //Extract the row to operate on
+        if((int)CSC[0][i] == lowRowIndex){
+            copyOperRow[0][copyPointerOper] = CSC[0][i];
+            copyOperRow[1][copyPointerOper] = CSC[1][i];
+            copyOperRow[2][copyPointerOper] = CSC[2][i];
+            copyPointerOper++; 
+        }   
+    }
+  
+    //Now add the 2 matricies using sum as limit for robustness
+    double** storeUnique = gen2DArray(3,1);
+    int dstPointer = 0; 
+    int counter = 0;
+    for(int i = 0; i<countCorrectRow;i++){
+        //Eliminate a row if possible or add elements with same value
+        if(copyFixedRow[1][i] == copyOperRow[1][dstPointer]){
+            copyOperRow[2][dstPointer++] = copyFixedRow[2][i]+copyOperRow[2][dstPointer];
+            counter++;
+            cout<<"counter:"<<counter<<endl;
+        }
+        else{
+            
+            storeUnique[0][0] = lowRowIndex;
+            storeUnique[1][0] = copyFixedRow[1][i];
+            storeUnique[2][0] = copyFixedRow[2][i];
+
+            cout<<cols<<endl;
+
+            double** CSC2 = concatenateCol(CSC,3,cols,storeUnique,1);
+
+             for(int i = 0; i<countCorrectRow;i++){
+        //Eliminate a row if possible or add elements with same value
+        if(copyFixedRow[1][i] == copyOperRow[1][dstPointer]){
+            cout<<copyFixedRow[2][i]+copyOperRow[2][dstPointer]<<endl;
+            copyOperRow[2][dstPointer++] = copyFixedRow[2][i]+copyOperRow[2][dstPointer];
+            counter++;
+            cout<<"counter:"<<counter<<endl;
+        }
+        else{
+            
+            storeUnique[0][0] = lowRowIndex;
+            storeUnique[1][0] = copyFixedRow[1][i];
+            storeUnique[2][0] = copyFixedRow[2][i];
+
+            cout<<cols<<endl;
+
+            //////////////////////////////////////////////////////////////////THIS NEEDS FIXING, concatenateCol returns a new array, but changing the 
+            ////Array name constantly will cause problems 
+            double** CSC2 = concatenateCol(CSC,3,cols,storeUnique,1);
+
+            //This block is to deal with the concatenate col creating a new array
+            cols++;
+            cout<<cols<<endl;
+            for (int i = 0; i < 3; i++) {
+                 delete[] CSC[i];
+            }
+            delete[] CSC;
+
+            cout<<"HERE";
+            double** CSC = gen2DArray(3,cols);
+            for(int i = 0;i<cols;i++){
+                CSC[0][i] = CSC2[0][i];
+                CSC[1][i] = CSC2[1][i];
+                CSC[2][i] = CSC2[2][i];
+            }
+
+        }   
+    }
+
+            //This block is to deal with the concatenate col creating a new array
+            cols++;
+            cout<<cols<<endl;
+            for (int i = 0; i < 3; i++) {
+                 delete[] CSC[i];
+            }
+            delete[] CSC;
+
+            cout<<"HERE";
+            double** CSC = gen2DArray(3,cols);
+            for(int i = 0;i<cols;i++){
+                CSC[0][i] = CSC2[0][i];
+                CSC[1][i] = CSC2[1][i];
+                CSC[2][i] = CSC2[2][i];
+            }
+
+        }   
+    }
+    
+
+    for(int i = 0;i<countOperRow;i++){
+        for(int j = 0;j<cols;j++){
+            //Check if row and col value match if so overwrite the values
+            if(copyOperRow[0][i] == CSC[0][j] && copyOperRow[1][i] == CSC[1][j]){
+                CSC[2][i] = copyOperRow[2][j];
+            }
+        }
+    }
+
+    sortCSC(CSC,cols);
+
+    deleteCSCzeros(CSC,cols);
+
+    return;
+}
+
+//Takes a sorted array and deletes the zeros from the front 
+void deleteCSCzeros(double** CSC,int &col){
+    for(int i = 0;i<col-1;i++){
+        for(int j = 0;j<col-1;j++){
+            //This acts as a break 
+            if(CSC[2][i] != 0){
+                j = col;
+            }
+            //left shift everything
+            else{
+                CSC[0][j] = CSC[0][j+1];
+                CSC[1][j] = CSC[1][j+1];
+                CSC[2][j] = CSC[2][j+1];
+                col--;
+            }
+        }
+    }
 }
