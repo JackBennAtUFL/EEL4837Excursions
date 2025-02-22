@@ -38,6 +38,12 @@ double** sparceToCSC(double** sparce,int row,int col,int &countElmt);
 
 double** createEqualsColumn(char labels[],double numsArr[],int rows, int nodes);
 
+double** solveCSC(double** CSC,int col,int row, int countElmt,double** swapTracker);
+
+void swapRow(double** CSC,int row1index,int row2index,int cols,double** swapTracker);
+
+void sortCSC(double** CSC,int cols);
+
 int main(){
 
     //get the string form the file 
@@ -142,18 +148,25 @@ int main(){
     
     int countElmt = 0;
 
-    double** csc = sparceToCSC(sparce,countRow*2+nodesCnt,countRow*2+nodesCnt+1,countElmt); 
+    double** CSC = sparceToCSC(sparce,countRow*2+nodesCnt,countRow*2+nodesCnt+1,countElmt); 
+
+    //This will track the swaps, so you know where variables end up
+    double** swapTracker = gen2DArray(countRow*2+nodesCnt,1);
+    for(int i = 0;i<countRow*2+nodesCnt;i++){
+        swapTracker[i][0] = i;
+    }
+    
 
     for(int i = 0;i<3;i++){
         for(int j = 0;j<countElmt;j++){
             cout <<setw(5);
-            cout <<csc[i][j]<<" ";
+            cout <<CSC[i][j]<<" ";
         }
         cout<<endl;
     }
 
 
-
+    
 
     return 0; 
 }   
@@ -510,26 +523,27 @@ double** sparceToCSC(double** sparce,int row,int col,int &countElmt){
     }
 
     //Generate destination array for the CSC
-    double** csc = gen2DArray(3,countElmt);
+    double** CSC = gen2DArray(3,countElmt);
     
     
     //Traverse the sparce and copy elements that are non-zere
-    int cscPoint = 0;
+    int CSCPoint = 0;
     for(int i = 0;i<row;i++){
         for(int j = 0;j<col;j++){
             if(sparce[i][j] != 0){
+                //column
+                CSC[0][CSCPoint] = i;
                 //row
-                csc[0][cscPoint] = i;
-                //col
-                csc[1][cscPoint] = j;
+                CSC[1][CSCPoint] = j;
                 //Value and increment dest column pointer
-                csc[2][cscPoint++] = sparce[i][j];
+                CSC[2][CSCPoint++] = sparce[i][j];
             }
         }
     }
-    return csc;
+    return CSC;
 }
 
+//This creates the column with the element voltages, the curretns and the voltage source values
 double** createEqualsColumn(char labels[],double numsArr[],int rows,int nodes){
 
     double** equalsColumn = gen2DArray(rows*2+nodes,1);
@@ -539,8 +553,77 @@ double** createEqualsColumn(char labels[],double numsArr[],int rows,int nodes){
             equalsColumn[i+rows+nodes][0] = numsArr[i*3+2];
         }
     }
-
-    cout<<"hldgsdlkfhas"<<endl;
-
     return equalsColumn;
+}
+
+double** solveCSC(double** CSC,int col,int row, int countElmt,double** swapTracker){
+
+    //Check
+    int countRow = 0;
+    for(int sweepCol = 0;sweepCol<row;sweepCol++)
+        for(int sweepRow = countRow; sweepRow<countElmt;sweepRow++){
+            if(CSC[sweepRow][sweepCol] != 0){
+                
+                for(int i = countRow;i<row;i++){
+                    if(CSC[sweepRow][i] != 0){
+                        swapRow(CSC,sweepRow,i,countElmt,swapTracker);
+                    }
+                }
+                //Then you go and multiply the rows to perform the elimination, ignore the control logic
+            }
+        }
+
+}
+
+//Takes the rows to swap and the CSC matrix also the column count of the CSC
+void swapRow(double** CSC,int row1index,int row2index,int cols,double** swapTracker){
+        //This swaps the rows of the CSC
+        for(int i = 0; i<cols;i++){
+            //Check if rows match the desired values
+            if(CSC[0][i] == row1index){
+                CSC[0][i] = row2index;
+            }
+            else if(CSC[0][i] == row2index){
+                CSC[0][i] = row1index;
+            }
+        }
+
+        //Update the swap tracker
+        swapTracker[row1index][0] = row2index; 
+        swapTracker[row2index][0] = row1index; 
+
+        //Re-sort the the swapped columns to preserve order 
+        sortCSC(CSC,cols);
+
+       
+    return;
+}
+
+//Using bubble sort to make it easier
+void sortCSC(double** CSC,int cols){
+
+    double tempRow;
+    double tempCol;
+    double tempVal;
+    //Loop that decrements the "maximum element" which is sorted
+    for(int i = 0;i<cols-1;i++){
+        //Bubble through the loop once
+        for(int j = 0;j<cols-1-i;j++){
+            //Swap values if needed
+            if(CSC[0][j] > CSC[0][j+1]){
+                tempRow = CSC[0][j]; 
+                tempCol = CSC[1][j];
+                tempVal = CSC[2][j];
+
+                CSC[0][j] = CSC[0][j+1];
+                CSC[1][j] = CSC[1][j+1];
+                CSC[2][j] = CSC[2][j+1];
+
+                CSC[0][j+1] = tempRow;
+                CSC[1][j+1] = tempCol;
+                CSC[2][j+1] = tempVal; 
+            }
+        }
+    }
+    return;
 }
