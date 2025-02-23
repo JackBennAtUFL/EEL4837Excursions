@@ -177,6 +177,24 @@ int main(){
     return 0; 
 }   
 
+
+/////////////////////////Migration to vectors, when converting to row echelon the array system breaks due to lack of dynamic sizing once declared
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //Fetch the netlist string (this works)
 string getText(string fileName){
 
@@ -751,65 +769,32 @@ void eliminateRow(double** CSC,int topRowIndex,int lowRowIndex,int operationCol,
 
             double** CSC2 = concatenateCol(CSC,3,cols,storeUnique,1);
 
-             for(int i = 0; i<countCorrectRow;i++){
-        //Eliminate a row if possible or add elements with same value
-        if(copyFixedRow[1][i] == copyOperRow[1][dstPointer]){
-            cout<<copyFixedRow[2][i]+copyOperRow[2][dstPointer]<<endl;
-            copyOperRow[2][dstPointer++] = copyFixedRow[2][i]+copyOperRow[2][dstPointer];
-            counter++;
-            cout<<"counter:"<<counter<<endl;
+            for(int i = 0; i<countCorrectRow;i++){
+                //Eliminate a row if possible or add elements with same value
+                if(copyFixedRow[1][i] == copyOperRow[1][dstPointer]){
+                    cout<<copyFixedRow[2][i]+copyOperRow[2][dstPointer]<<endl;
+                    copyOperRow[2][dstPointer++] = copyFixedRow[2][i]+copyOperRow[2][dstPointer];
+                    counter++;
+                    cout<<"counter:"<<counter<<endl;
+                }
+                else{
+                    
+                    storeUnique[0][0] = lowRowIndex;
+                    storeUnique[1][0] = copyFixedRow[1][i];
+                    storeUnique[2][0] = copyFixedRow[2][i];
+
+                    cout<<cols<<endl;
+
+                    double** CSC2 = concatenateCol(CSC,3,cols,storeUnique,1);
+
+                    //This block is to deal with the concatenate col creating a new array
+                    cols++;
+
+                }   
+            }   
         }
-        else{
-            
-            storeUnique[0][0] = lowRowIndex;
-            storeUnique[1][0] = copyFixedRow[1][i];
-            storeUnique[2][0] = copyFixedRow[2][i];
-
-            cout<<cols<<endl;
-
-            //////////////////////////////////////////////////////////////////THIS NEEDS FIXING, concatenateCol returns a new array, but changing the 
-            ////Array name constantly will cause problems 
-            double** CSC2 = concatenateCol(CSC,3,cols,storeUnique,1);
-
-            //This block is to deal with the concatenate col creating a new array
-            cols++;
-            cout<<cols<<endl;
-            for (int i = 0; i < 3; i++) {
-                 delete[] CSC[i];
-            }
-            delete[] CSC;
-
-            cout<<"HERE";
-            double** CSC = gen2DArray(3,cols);
-            for(int i = 0;i<cols;i++){
-                CSC[0][i] = CSC2[0][i];
-                CSC[1][i] = CSC2[1][i];
-                CSC[2][i] = CSC2[2][i];
-            }
-
-        }   
-    }
-
-            //This block is to deal with the concatenate col creating a new array
-            cols++;
-            cout<<cols<<endl;
-            for (int i = 0; i < 3; i++) {
-                 delete[] CSC[i];
-            }
-            delete[] CSC;
-
-            cout<<"HERE";
-            double** CSC = gen2DArray(3,cols);
-            for(int i = 0;i<cols;i++){
-                CSC[0][i] = CSC2[0][i];
-                CSC[1][i] = CSC2[1][i];
-                CSC[2][i] = CSC2[2][i];
-            }
-
-        }   
-    }
     
-
+    } 
     for(int i = 0;i<countOperRow;i++){
         for(int j = 0;j<cols;j++){
             //Check if row and col value match if so overwrite the values
@@ -819,9 +804,9 @@ void eliminateRow(double** CSC,int topRowIndex,int lowRowIndex,int operationCol,
         }
     }
 
-    sortCSC(CSC,cols);
+    sortCSC(CSC2,cols);
 
-    deleteCSCzeros(CSC,cols);
+    deleteCSCzeros(CSC2,cols);
 
     return;
 }
