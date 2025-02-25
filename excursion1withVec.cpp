@@ -43,13 +43,13 @@ vector<vector<double>> createSparce(vector<vector<double>> incident,vector<vecto
 
 vector<vector<double>> sparceToCSC(vector<vector<double>> sparce);
 
-vector<vector<double>> solveCSC(vector<vector<double>> CSC, vector<vector<double>> swapTracker);
+void solveCSC(vector<vector<double>> &CSC);
 
-void swapRow(vector<vector<double>> &CSC,int row1index,int row2index,vector<vector<double>> &swapTracker);
+void swapRow(vector<vector<double>> &CSC,int row1index,int row2index);
 
 void sortCSC(vector<vector<double>> &CSC);
 
-void eliminateRow(vector<vector<double>> &CSC,int topRowIndex,int lowRowIndex,int operationCol);
+void eliminateRowDown(vector<vector<double>> &CSC,int topRowIndex,int lowRowIndex,int operationCol);
 
 //Takes a sorted array and deletes the zeros from the front 
 void deleteCSCzeros(vector<vector<double>> &CSC);
@@ -151,14 +151,24 @@ int main(){
     int sparceHeight = countRow*2+nodesCnt;
     int sparceWidth = sparceHeight; 
 
-    vector<vector<double>> swapTracker = create2dVec(sparceHeight,1);
-    for(int i = 0;i<sparceHeight;i++){
-        swapTracker[i][0] = i;
+    for(int i = 0;i<sparce.size();i++){
+        for(int j = 0;j<sparce[0].size();j++){
+            cout<<setw(4)<<sparce[i][j]<<" ";
+        }
+        cout<<endl;
     }
 
-    swapRow(CSC,0,2,swapTracker);
+    solveCSC(CSC);
 
-    eliminateRow(CSC,0,3,0);
+    for(int i = 0;i<3;i++){
+        for(int j = 0;j<CSC[0].size();j++){
+            cout<<setw(3)<<CSC[i][j]<<" ";
+        }
+        cout<<endl;
+    }
+    cout<<endl;
+
+    
 
     return 0;
 }
@@ -274,8 +284,6 @@ vector<vector<double>> createIncidence(double nodesCountArr[],int &nodes,int bra
     
     vector<vector<double>> incidentMatrix = create2dVec(nodes - 1,branches);
     
-    cout<<"where>"<<branches<<endl;
-
     //Create the incident matrix
     for(int i = 0;i<branches*2;i++){
         if(nodesCountArr[i] == 0){
@@ -332,7 +340,6 @@ vector<vector<double>> concatenateCol(vector<vector<double>> intialMatrix,vector
     return concatenated;   
 }
 
-
 //Important note, the initial matrix will be on top and the matrix "to concatenate" will be
 //added on the bottom
 vector<vector<double>> concatenateRow(vector<vector<double>> intialMatrix,vector<vector<double>>toConcat){
@@ -361,7 +368,7 @@ vector<vector<double>> concatenateRow(vector<vector<double>> intialMatrix,vector
 }
 
 //Takes the rows to swap and the CSC matrix also the column count of the CSC
-void swapRow(vector<vector<double>> &CSC,int row1index,int row2index,vector<vector<double>> &swapTracker){
+void swapRow(vector<vector<double>> &CSC,int row1index,int row2index){
     //This swaps the rows of the CSC
     for(int i = 0; i<CSC[0].size();i++){
         //Check if rows match the desired values
@@ -372,15 +379,8 @@ void swapRow(vector<vector<double>> &CSC,int row1index,int row2index,vector<vect
             CSC[0][i] = row1index;
         }
     }
-
-    //Update the swap tracker
-    swapTracker[row1index][0] = row2index; 
-    swapTracker[row2index][0] = row1index; 
-
     //Re-sort the the swapped columns to preserve order 
     sortCSC(CSC);
-
-   
 return;
 }
 
@@ -435,13 +435,12 @@ void sortCSC(vector<vector<double>> &CSC){
     return;
 }
 
-
-void eliminateRow(vector<vector<double>> &CSC,int topRowIndex,int lowRowIndex,int operationCol){
+void eliminateRowDown(vector<vector<double>> &CSC,int topRowIndex,int lowRowIndex,int operationCol){
 
     int cols = CSC[0].size();
 
-    double diagElement = 0; 
 
+    double diagElement = 1; 
     //out<<"Diag El"<<diagElement;
     //Find the top left element to use
     for(int i = 0;i<cols;i++){
@@ -508,45 +507,23 @@ void eliminateRow(vector<vector<double>> &CSC,int topRowIndex,int lowRowIndex,in
     vector<vector<double>> storeUnique = create2dVec(3,1);
     int dstPointer = 0; 
     int counter = 0;
+
+    
     for(int i = 0; i<countCorrectRow;i++){
         //Eliminate a row if possible or add elements with same value
         if(copyFixedRow[1][i] == copyOperRow[1][dstPointer]){
-            copyOperRow[2][dstPointer++] = copyFixedRow[2][i]+copyOperRow[2][dstPointer];
-            counter++;
-            cout<<"counter:"<<counter<<endl;
+            copyOperRow[2][dstPointer] = copyFixedRow[2][i]+copyOperRow[2][dstPointer];
+            dstPointer++;
         }
         else{
-            
+            vector<vector<double>> storeUnique = create2dVec(3,1);
+
             storeUnique[0][0] = lowRowIndex;
             storeUnique[1][0] = copyFixedRow[1][i];
             storeUnique[2][0] = copyFixedRow[2][i];
 
-            cout<<cols<<endl;
+            CSC = concatenateCol(CSC,storeUnique);
 
-            for(int i = 0; i<countCorrectRow;i++){
-                //Eliminate a row if possible or add elements with same value
-                if(copyFixedRow[1][i] == copyOperRow[1][dstPointer]){
-                    cout<<copyFixedRow[2][i]+copyOperRow[2][dstPointer]<<endl;
-                    copyOperRow[2][dstPointer++] = copyFixedRow[2][i]+copyOperRow[2][dstPointer];
-                    counter++;
-                    cout<<"counter:"<<counter<<endl;
-                }
-                else{
-                    
-                    storeUnique[0][0] = lowRowIndex;
-                    storeUnique[1][0] = copyFixedRow[1][i];
-                    storeUnique[2][0] = copyFixedRow[2][i];
-
-                    cout<<cols<<endl;
-
-                    CSC = concatenateCol(CSC,storeUnique);
-
-            
-                    //This block is to deal with the concatenate col creating a new array
-                    cols++;
-
-                }   
-            }   
         }
     
     } 
@@ -558,70 +535,90 @@ void eliminateRow(vector<vector<double>> &CSC,int topRowIndex,int lowRowIndex,in
             }
         }
     }
-
-
+    
     sortCSC(CSC);
 
-    for(int i = 0; i<3;i++){
-        for(int j = 0; j<CSC[0].size();j++){
-        //for(int j = 0; j<countRow;j++){
-            cout<<setw(4)<<CSC[i][j]<<" ";
-        //}
-        }
-        cout<<endl;
-    }
-
-    cout<<endl;
-
     deleteCSCzeros(CSC);
-
-    for(int i = 0; i<3;i++){
-        for(int j = 0; j<CSC[0].size();j++){
-        //for(int j = 0; j<countRow;j++){
-            cout<<setw(4)<<CSC[i][j]<<" ";
-        //}
-        }
-        cout<<endl;
-    }
-
 
     return;
 }
 
-
-vector<vector<double>> solveCSC(vector<vector<double>> &CSC, vector<vector<double>> &swapTracker){
+//This takes a sorted CSC matrix
+void solveCSC(vector<vector<double>> &CSC){
 
     //Find the max row and column values
     int maxRow = 0;
     int maxCol = 0;
     for(int i = 0;i<CSC[0].size();i++){
-        if(CSC[0][i] >maxRow) maxRow = CSC[0][i];
-        if(CSC[0][i] >maxCol) maxRow = CSC[1][i];
+        if((int)CSC[0][i] >maxRow) maxRow = (int)CSC[0][i];
+        if((int)CSC[1][i] > maxCol) maxCol = (int)CSC[1][i];
     }
 
-    //Ignore for now
-    for(int sweepCol = 0;sweepCol<;sweepCol++){
-        //look through each row
-        bool gotDiag =false;
 
-        for(int sweepRow = 0; sweepRow<=maxRow;sweepRow++){
-            if(CSC[sweepRow][sweepCol] != 0){
-                
-                for(int i = countRow;i<row;i++){
-                    if(CSC[sweepRow][i] != 0){
-                        swapRow(CSC,sweepRow,i,countElmt,swapTracker);
-                    }
-                    //go here if subsequent non zero elements are found in the current column
-                    else if(CSC[sweepRow][i] != 0){
+    //This does Row echelon form and solves down 
+    int count = 0;
+    //Create the row echelon matrix  
+    //look down each col (metaphorically)
+    for(int sweepCol = 0;sweepCol<maxCol-1;sweepCol++){
+        
+        bool found1st = false;
 
-                    }
-                }
-                //Then you go and multiply the rows to perform the elimination, ignore the control logic
+        //find the first column index in each row
+        for(int i = 0;i<CSC[0].size();i++){
+        
+            //skip elements that are above the diagonal
+            if(CSC[0][i] < CSC[1][i]){
+            }
+                //see if the diagonal has a non zero
+            else if (CSC[1][i] == sweepCol && CSC[0][i] == sweepCol &&  0 != CSC[2][i]){
+                found1st = true;
+            }
+            //swap once you find the first element in the column swap 
+            else if (CSC[1][i] == sweepCol && found1st == false){
+                swapRow(CSC,sweepCol,(int)CSC[0][i]);
+                found1st = true;
+            }
+            else if (CSC[1][i] == sweepCol && found1st == true){
+                eliminateRowDown(CSC,sweepCol,(int)CSC[0][i],sweepCol);
             }
         }
+        
     }
 
-    return CSC;
+    double rowFactor = 0;
+    double row = 0; 
+    //ow do reduced row, divide the diagonals and get rref
+    for(int i = 0;i<CSC[0].size();i++){
+        row = CSC[0][i]; 
+        if(CSC[0][i] == CSC[1][i]){
+            rowFactor = CSC[2][i]; 
+        }
+        int j = i;
+        while(j<CSC[0].size() && CSC[0][j] == row){
+            
+            i = j;
+            CSC[2][j] = CSC[2][j]/rowFactor; 
+            j++;
+        }
+          
+    }
+
+
+    //next do the back substitution
+    vector<vector<double>> solutions = create2dVec(maxRow,1);
+
+    for(int i = 0;i<solutions.size();i++){
+        cout<<solutions[i][0]<<endl;
+        
+    }
+
+    vector<vector<double>> storeUnique = create2dVec(3,1);
+
+
+    cout<<maxRow<<endl;
+    
+
+    return;
 }
 
 //Takes a sorted array and deletes the zeros from the front 
@@ -644,7 +641,6 @@ void deleteCSCzeros(vector<vector<double>> &CSC){
     }
     return; 
 }
-
 
 //Matrix tools
 vector<vector<double>> transpose(vector<vector<double>> intialMatrix,int row,int col){

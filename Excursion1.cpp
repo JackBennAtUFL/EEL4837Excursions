@@ -178,23 +178,6 @@ int main(){
 }   
 
 
-/////////////////////////Migration to vectors, when converting to row echelon the array system breaks due to lack of dynamic sizing once declared
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //Fetch the netlist string (this works)
 string getText(string fileName){
 
@@ -431,7 +414,6 @@ double** negateMat(double** intialMatrix,int rows,int columns){
         }
     }
     return negation; 
-
 }
 
 double** transpose(double** intialMatrix,int row,int col){
@@ -804,9 +786,6 @@ void eliminateRow(double** CSC,int topRowIndex,int lowRowIndex,int operationCol,
         }
     }
 
-    sortCSC(CSC2,cols);
-
-    deleteCSCzeros(CSC2,cols);
 
     return;
 }
