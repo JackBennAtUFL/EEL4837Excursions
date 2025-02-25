@@ -159,15 +159,6 @@ int main(){
     }
 
     solveCSC(CSC);
-
-    for(int i = 0;i<3;i++){
-        for(int j = 0;j<CSC[0].size();j++){
-            cout<<setw(3)<<CSC[i][j]<<" ";
-        }
-        cout<<endl;
-    }
-    cout<<endl;
-
     
 
     return 0;
@@ -554,7 +545,6 @@ void solveCSC(vector<vector<double>> &CSC){
         if((int)CSC[1][i] > maxCol) maxCol = (int)CSC[1][i];
     }
 
-
     //This does Row echelon form and solves down 
     int count = 0;
     //Create the row echelon matrix  
@@ -587,7 +577,7 @@ void solveCSC(vector<vector<double>> &CSC){
 
     double rowFactor = 0;
     double row = 0; 
-    //ow do reduced row, divide the diagonals and get rref
+    //now do reduced row, divide the diagonals and get rref
     for(int i = 0;i<CSC[0].size();i++){
         row = CSC[0][i]; 
         if(CSC[0][i] == CSC[1][i]){
@@ -599,24 +589,101 @@ void solveCSC(vector<vector<double>> &CSC){
             i = j;
             CSC[2][j] = CSC[2][j]/rowFactor; 
             j++;
-        }
-          
+        }        
     }
-
 
     //next do the back substitution
     vector<vector<double>> solutions = create2dVec(maxRow,1);
 
-    for(int i = 0;i<solutions.size();i++){
-        cout<<solutions[i][0]<<endl;
-        
-    }
-
     vector<vector<double>> storeUnique = create2dVec(3,1);
 
+    //Iterate through all of the rows to solve
+    for(int i = maxRow;i>=0;i--){
+        //scan until you hit the right row value 
+        for(int cscPointer = CSC[0].size()-1;cscPointer >= 0;cscPointer--){
+            cout<<cscPointer<<endl;
+            cout<<i<<endl;
+            if(CSC[0][cscPointer] == i){
+                if(( CSC[1][cscPointer] != maxCol)){
+                    
+                    storeUnique[0][0] = i;
+                    storeUnique[1][0] = maxCol;
+                    storeUnique[2][0] = 0; 
 
-    cout<<maxRow<<endl;
-    
+                    double tempElim = 0;
+                    //Substitute the values needed and the 0 out the stuff in the left side of the matrix
+                    while(CSC[0][cscPointer] == i && CSC[0][cscPointer] != CSC[1][cscPointer] && cscPointer>=0){
+                        if(CSC[1][cscPointer] == maxCol){
+                            cscPointer--;
+                        }
+                        else{
+                            //search for row and column return value of the prior rows
+                            double val; 
+                            for(int search = CSC[0].size()-1;search>= 0;search--){
+                                if(CSC[1][cscPointer] == CSC[0][search] && CSC[1][search] == maxCol){
+                                    val =  CSC[2][search];
+                                    break;
+                                }
+                            }
+                        
+                            tempElim = tempElim - CSC[2][cscPointer]*val; 
+                            CSC[2][cscPointer] = 0; 
+                            cscPointer--; 
+                        }
+                    }
+                    //cout<<tempElim<<endl;
+                    //concatenate the unique row and sort 
+                    cout<<"did it get here"<<endl;
+                    storeUnique[2][0]  = tempElim;
+                    CSC = concatenateCol(CSC,storeUnique);
+                    sortCSC(CSC);
+                    deleteCSCzeros(CSC);
+
+                }
+                else{
+                    double tempElim = 0;
+                    double val = 0; 
+                    //Substitute the values needed and the 0 out the stuff in the left side of the matrix
+                    while(CSC[0][cscPointer] == i && (CSC[0][cscPointer] != CSC[1][cscPointer]) && cscPointer>=0){
+                        if(CSC[1][cscPointer] == maxCol){
+                            cscPointer--;
+                        }
+                        else{
+                            //search for row and column return value of the prior rows
+                            
+                            for(int search = CSC[0].size();search>= 0;search--){
+                                if(CSC[1][cscPointer] == CSC[0][search] && CSC[1][search] == maxCol){
+                                    val =  CSC[2][search];
+                                    break;
+                                }
+                            }
+
+                            tempElim = tempElim - CSC[2][cscPointer]*val; 
+                            CSC[2][cscPointer] = 0; 
+                            cscPointer--; 
+                        }
+                    }
+                    //copy the new value to the equals column 
+                    cout<<"here"<<endl;
+                    for(int j = 0;j<CSC[0].size()-1;j++){
+                        if(CSC[0][j] == i && CSC[1][j] == maxCol){
+                            CSC[2][j] = CSC[2][j]+tempElim;
+                        }
+                    }
+                    
+                    
+                }
+                cout<<"break"<<endl;
+                for(int j = 0;j<3;j++){
+                    for(int i = 0;i<CSC[0].size();i++){
+                        cout<<setw(10)<<setprecision(6)<<CSC[j][i];
+                    }
+                    cout<<endl;
+                }
+                break;
+            }
+        }
+    }
 
     return;
 }
