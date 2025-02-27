@@ -6,6 +6,8 @@
 #include <vector>
 #include <cstdlib>
 #include <iomanip>
+#include <sstream>
+
 
 using namespace std; 
 
@@ -17,6 +19,8 @@ vector<vector<double>> createEqualsColumn(char labels[], double numsArr[], int r
 vector<vector<double>> createIncidence(double nodesCountArr[], int &nodes, int branches);
 
 string getText(string fileName);
+
+void outText(string outputStr);
 
 int deduplicate(double nums[], int n);
 
@@ -53,6 +57,8 @@ void eliminateRowDown(vector<vector<double>> &CSC,int topRowIndex,int lowRowInde
 
 //Takes a sorted array and deletes the zeros from the front 
 void deleteCSCzeros(vector<vector<double>> &CSC);
+
+string extractResultString(vector<vector<double>> CSC);
 
 int main(){
 
@@ -158,10 +164,41 @@ int main(){
         cout<<endl;
     }
 
+    //This works
     solveCSC(CSC);
     
+    string result = extractResultString(CSC);
+
+    outText(result);
 
     return 0;
+}
+
+
+string extractResultString(vector<vector<double>> CSC){
+
+    string result;
+
+    for(int i = 0;i<CSC[0].size();i++){
+        ostringstream temp; 
+        string tempString;
+        int prc = 3;
+        if( (int)CSC[0][i] != (int)CSC[1][i]){    
+            temp << fixed<<setprecision(prc)<<CSC[2][i];
+           
+            tempString = temp.str();
+            //Now search through temp    
+            while(tempString[tempString.length()-1] == '0' && prc >= 0){
+                temp << fixed<<setprecision(prc)<<CSC[2][i];
+                tempString.erase();
+                tempString = temp.str();
+                temp.str("");
+                prc--; 
+            }
+        }
+        result = result + " " + tempString;
+    }
+    return result;
 }
 
 vector<vector<double>> sparceToCSC(vector<vector<double>> sparce){
@@ -592,6 +629,9 @@ void solveCSC(vector<vector<double>> &CSC){
         }        
     }
 
+
+
+    ///////////////////////////////////Problem somewhere in here 
     //next do the back substitution
     vector<vector<double>> solutions = create2dVec(maxRow,1);
 
@@ -650,15 +690,21 @@ void solveCSC(vector<vector<double>> &CSC){
                         }
                         else{
                             //search for row and column return value of the prior rows
-                            
-                            for(int search = CSC[0].size();search>= 0;search--){
+                            for(int search = CSC[0].size()-1;search>= 0;search--){
                                 if(CSC[1][cscPointer] == CSC[0][search] && CSC[1][search] == maxCol){
                                     val =  CSC[2][search];
+                                    cout<<"val is"<<val<<endl;
+                                    cout<<"search is"<<search<<endl;
                                     break;
                                 }
                             }
 
-                            tempElim = tempElim - CSC[2][cscPointer]*val; 
+                            cout<<"telemetry"<<endl;
+                            cout<<"temp elim pre is: "<<tempElim<<endl;
+                            tempElim = tempElim - CSC[2][cscPointer]*val;
+                            cout<<"temp elim post is: "<<tempElim<<endl;
+                            // deleteCSCzeros(CSC);
+                            // sortCSC(CSC); 
                             CSC[2][cscPointer] = 0; 
                             cscPointer--; 
                         }
@@ -674,9 +720,10 @@ void solveCSC(vector<vector<double>> &CSC){
                     
                 }
                 cout<<"break"<<endl;
+                int k = 0;
                 for(int j = 0;j<3;j++){
                     for(int i = 0;i<CSC[0].size();i++){
-                        cout<<setw(10)<<setprecision(6)<<CSC[j][i];
+                        cout<<setw(7)<<setprecision(3)<<CSC[j][i];
                     }
                     cout<<endl;
                 }
@@ -755,6 +802,22 @@ string getText(string fileName){
 
     return line; 
 }
+
+void outText(string outputStr){
+
+    ofstream myFile;
+    myFile.open("output.txt",ios::out); //read
+    if(myFile.is_open()){
+        myFile<<outputStr<<endl; 
+        myFile.close();
+    }
+    else{
+        cout<<"file write failed"<<endl;
+    }  
+
+    return; 
+}
+
 
 //These are used to find the number of unique nodes or kill the program is a circuit is bad
 int deduplicate(double nums[], int n ){
