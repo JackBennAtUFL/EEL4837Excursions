@@ -8,110 +8,9 @@
 
 using namespace std; 
 
-vector<vector<double>> iCoefficients(double numsArr[], char labels[], int rows);
-vector<vector<double>> createEqualsColumn(char labels[], double numsArr[], int rows, int nodes);
-vector<vector<double>> createIncidence(double nodesCountArr[], int &nodes, int branches);
-vector<vector<double>> createIncidence(double nodesCountArr[],int &nodes,int branches);
-vector<vector<double>> createidentity(int size);
-
-string getText(string fileName);
-void outText(string outputStr);
-
-int countNodes(double nums[], int n);
-int countRows(string line);
-
-vector<vector<double>> create2dVec(int row, int col);
-
-vector<vector<double>> concatenateCol(vector<vector<double>> intialMatrix,vector<vector<double>>toConcat);
-vector<vector<double>> concatenateRow(vector<vector<double>> intialMatrix,vector<vector<double>>toConcat);
-
-vector<vector<double>> negateMat(vector<vector<double>> intialMatrix,int rows,int columns);
-vector<vector<double>> transpose(vector<vector<double>> intialMatrix,int row,int col);
-
-
-vector<vector<double>> createSparce(vector<vector<double>> incident,vector<vector<double>> currentCoef,vector<vector<double>> eqCol,int nodes,int rows);
-vector<vector<double>> sparceToCSC(vector<vector<double>> sparce);
-void solveCSC(vector<vector<double>> &CSC);
-
-void swapRow(vector<vector<double>> &CSC,int row1index,int row2index);
-void sortCSC(vector<vector<double>> &CSC);
-void eliminateRowDown(vector<vector<double>> &CSC,int topRowIndex,int lowRowIndex,int operationCol);
-
-string extractResultString(vector<vector<double>> CSC);
-
-int main(){
-
-    //get the string form the file 
-    string line = getText("netlist.txt");
-    //Count the number of rows
-    int countRow = countRows(line);
-    //Create a netlist with an order
-    char* elementLabels = new char[countRow];    
-    //Create a dynamic array for the node labels and elements 
-    double* numsArr = new double[countRow*3];
-
-    int lmtpointer = 0;
-    int valPtr = 0;
-    int i = 0; 
-
-    while(i<line.length()){
-        string temp; 
-        
-        if(isalpha(line[i])){
-            //Copy the letter either V or R
-            if(line[i] != 'R' && line[i] != 'V'){
-                cout<<"Bad circuit, check element names for L,C, only use V,R"<<endl;
-                return 0;
-            }
-            temp += line[i++];
-           
-            //Skip over the net label numbers because that is now encoded in the element label order
-            while(isdigit(line[i++]))
-        
-            //Copy the element labels
-            elementLabels[lmtpointer++] = temp[0];
-        }
-        //Get elements until you hit the end of the "row" 
-        else if(isdigit(line[i])){  
-            string tempNum;
-        
-            while ((isdigit(line[i])||line[i] == '.') &&  i<line.length()){
-                tempNum += line[i++];
-            }
-            numsArr[valPtr++] = stod(tempNum);
-        }
-        //This will just catch odd cases or ends of lines 
-        else if((line[i] == ','||line[i] == ' ')) i++;
-    }
-
-    //Create two arrays, one for incident and one for couting the elements in the inicdent matrix
-    double* nodesCountArr = new double[countRow*2];
-    double* nodesCountCopy = new double[countRow*2];
-
-    int j = 0;
-    for(int i = 0; i<countRow*3;i++){
-        if( (i+1) % 3 != 0){
-            nodesCountArr[j] = numsArr[i];
-            nodesCountCopy[j++] = nodesCountArr[j];
-        }
-    }
-
-    int nodesCnt = countNodes(nodesCountCopy,countRow*2);
-
-    //create the nessesary matricies
-    vector<vector<double>> incidentMatrix = createIncidence(nodesCountArr,nodesCnt,countRow);
-    vector<vector<double>> iCoef = iCoefficients(numsArr,elementLabels,countRow);
-    vector<vector<double>> eqCol = createEqualsColumn(elementLabels,numsArr,countRow,nodesCnt);
-    vector<vector<double>> CSC = sparceToCSC(createSparce(incidentMatrix,iCoef,eqCol,nodesCnt,countRow));
-    
-    //This works
-    solveCSC(CSC);
-    
-    string result = extractResultString(CSC);
-    outText(result);
-   
-    cout<<result<<endl;
-    return 0;
+//Create an empty 2d vector with sizes
+vector<vector<double>> create2dVec(int row, int col){
+    return vector<vector<double>>(row, vector<double>(col,0.0));
 }
 
 //Take the CSC and print the results
@@ -142,69 +41,71 @@ string extractResultString(vector<vector<double>> CSC){
     return result;
 }
 
-//Convert the sparce matrix to a CSC matrix
-vector<vector<double>> sparceToCSC(vector<vector<double>> sparce) {
-    int cscWidth = 0;
+//Important note, must have same rows the initial matrix will be to the left and the matrix "to concatenate" will be added on the right
+vector<vector<double>> concatenateCol(vector<vector<double>> intialMatrix,vector<vector<double>>toConcat){
 
-    //Count the non 0 elements in the sparce matrix
-    for(int i = 0;i<sparce.size();i++){
-        for(int j = 0;j<sparce[0].size();j++){
-            if(sparce[i][j] != 0) cscWidth++;
-        }
-    }
-    //Generate destination array for the CSC
-    vector<vector<double>> CSC = create2dVec(3,cscWidth);
+    //Create a destination matrix with the right size 
+    vector<vector<double>> concatenated = create2dVec(intialMatrix.size(),(intialMatrix[0].size()+toConcat[0].size()));
     
-    //Traverse the sparce and copy elements that are non-zere
-    int CSCPoint = 0;
-    for(int i = 0;i<sparce.size();i++){
-        for(int j = 0;j<sparce[0].size();j++){
-            if(sparce[i][j] != 0){
-                //rows
-                CSC[0][CSCPoint] = i;
-                //columns
-                CSC[1][CSCPoint] = j;
-                //Value and increment dest column pointer
-                CSC[2][CSCPoint++] = sparce[i][j];
+    //copy the intial matrix
+    for(int i = 0;i<intialMatrix.size();i++){
+        for(int j = 0;j<intialMatrix[0].size()+toConcat[0].size();j++){
+            if(j<intialMatrix[0].size()){
+                concatenated[i][j] = intialMatrix[i][j];
+            }else{ 
+                concatenated[i][j] = toConcat[i][j-intialMatrix[0].size()];
             }
         }
     }
-    return CSC;
+    return concatenated;   
 }
 
-//This creates the sparce matrix which will be shrunk down to CSC form
-vector<vector<double>> createSparce(vector<vector<double>> incident,vector<vector<double>> currentCoef,vector<vector<double>> eqCol,int nodes,int rows){
-    //Create the component arrays
-    vector<vector<double>> leftTop = create2dVec(nodes,nodes);
-    vector<vector<double>> leftMiddle = negateMat(transpose(incident,nodes,rows),rows,nodes);
-    vector<vector<double>> Leftbottom = create2dVec(rows,nodes);  
-    vector<vector<double>> middletop = create2dVec(nodes,rows);
-    vector<vector<double>> center = createidentity(rows);
-    vector<vector<double>> rightMiddle  = create2dVec(rows,rows);
-
-    //This function creates 3 rows in the large sparce matrix then concatenates them
-    //[0    ,0   ,A]
-    vector<vector<double>> sparce = concatenateCol(concatenateCol(leftTop,middletop),incident);
-    //[-A^T ,1   ,0]
-    vector<vector<double>> row2 = concatenateCol(concatenateCol(leftMiddle,center),rightMiddle);
+//Important note, the initial matrix will be on top and the matrix "to concatenate" will be added on the bottom must have same cols
+vector<vector<double>> concatenateRow(vector<vector<double>> intialMatrix,vector<vector<double>>toConcat){
+    //Create a destination matrix with the right size 
+    vector<vector<double>> concatenated = create2dVec(intialMatrix.size()+toConcat.size(),intialMatrix[0].size());
     
-    /*
-    [0    ,0   ,A]
-    [-A^T ,1   ,0] */
-    sparce = concatenateRow(sparce,row2);
-
-    //[0    ,M   ,N]
-    vector<vector<double>> row3 = concatenateCol(concatenateCol(Leftbottom,center),currentCoef);
-    
-    /*
-    [0    ,0   ,A]
-    [-A^T ,1   ,0]
-    [0    ,M   ,N] */
-    sparce =  concatenateRow(sparce,row3);
-    
-    //Return the sparce with the equals column
-    return concatenateCol(sparce,eqCol); 
+    //copy the intial matrix, this is an exact inversion of concat col
+    for(int i = 0;i<intialMatrix[0].size();i++){
+        for(int j = 0;j<intialMatrix.size()+toConcat.size();j++){
+            if(j<intialMatrix.size()){
+                concatenated[j][i] = intialMatrix[j][i];
+            }else{ 
+                concatenated[j][i] = toConcat[j-intialMatrix.size()][i];
+            }
+        }
+    }
+    return concatenated;
 }
+
+//This flips the sign of all non zero array elements
+vector<vector<double>> negateMat(vector<vector<double>> intialMatrix,int rows,int columns){
+    vector<vector<double>> negation = create2dVec(rows, columns);
+
+    for(int i = 0;i<rows;i++){
+        for(int j = 0;j<columns;j++){
+            //I'm afraid of signed 0  
+            if(intialMatrix[i][j] != 0){
+                negation[i][j]  = -1*intialMatrix[i][j];
+            }
+        }
+    }
+    return negation; 
+}
+
+//Matrix tools
+vector<vector<double>> transpose(vector<vector<double>> intialMatrix,int row,int col){
+    vector<vector<double>> transpose = create2dVec(col, row);
+
+    for(int i = 0;i<row;i++){
+        for(int j = 0;j<col;j++){
+            //I'm afraid of signed 0 
+                transpose[j][i] = intialMatrix[i][j];      
+        }
+    }
+    return transpose; 
+}
+
 
 //Scan through the list of elements and extract the resistors
 vector<vector<double>> iCoefficients(double numsArr[],char labels[],int rows){
@@ -258,60 +159,80 @@ vector<vector<double>> createidentity(int size){
     return identity; 
 }
 
-//Important note, must have same rows the initial matrix will be to the left and the matrix "to concatenate" will be added on the right
-vector<vector<double>> concatenateCol(vector<vector<double>> intialMatrix,vector<vector<double>>toConcat){
+//Convert the sparce matrix to a CSC matrix
+vector<vector<double>> sparceToCSC(vector<vector<double>> sparce) {
+    int cscWidth = 0;
 
-    //Create a destination matrix with the right size 
-    vector<vector<double>> concatenated = create2dVec(intialMatrix.size(),(intialMatrix[0].size()+toConcat[0].size()));
+    //Count the non 0 elements in the sparce matrix
+    for(int i = 0;i<sparce.size();i++){
+        for(int j = 0;j<sparce[0].size();j++){
+            if(sparce[i][j] != 0) cscWidth++;
+        }
+    }
+
+    cout<<"hfefefkelfef"<<endl;
+    for(int i = 0; i<sparce.size();i++){
+        for(int j = 0;j<sparce[0].size();j++){
+            cout<<setw(4)<<sparce[i][j];
+        }
+        cout<<endl;
+    }
+
+    //Generate destination array for the CSC
+    vector<vector<double>> CSC = create2dVec(3,cscWidth);
     
-    //copy the intial matrix
-    for(int i = 0;i<intialMatrix.size();i++){
-        for(int j = 0;j<intialMatrix[0].size()+toConcat[0].size();j++){
-            if(j<intialMatrix[0].size()){
-                concatenated[i][j] = intialMatrix[i][j];
-            }else{ 
-                concatenated[i][j] = toConcat[i][j-intialMatrix[0].size()];
+    //Traverse the sparce and copy elements that are non-zere
+    int CSCPoint = 0;
+    for(int i = 0;i<sparce.size();i++){
+        for(int j = 0;j<sparce[0].size();j++){
+            if(sparce[i][j] != 0){
+                //rows
+                CSC[0][CSCPoint] = i;
+                //columns
+                CSC[1][CSCPoint] = j;
+                //Value and increment dest column pointer
+                CSC[2][CSCPoint++] = sparce[i][j];
             }
         }
     }
-    return concatenated;   
+
+
+
+    return CSC;
 }
 
-//Important note, the initial matrix will be on top and the matrix "to concatenate" will be added on the bottom must have same cols
-vector<vector<double>> concatenateRow(vector<vector<double>> intialMatrix,vector<vector<double>>toConcat){
+//This creates the sparce matrix which will be shrunk down to CSC form
+vector<vector<double>> createSparce(vector<vector<double>> incident,vector<vector<double>> currentCoef,vector<vector<double>> eqCol,int nodes,int rows){
+    //Create the component arrays
+    vector<vector<double>> leftTop = create2dVec(nodes,nodes);
+    vector<vector<double>> leftMiddle = negateMat(transpose(incident,nodes,rows),rows,nodes);
+    vector<vector<double>> Leftbottom = create2dVec(rows,nodes);  
+    vector<vector<double>> middletop = create2dVec(nodes,rows);
+    vector<vector<double>> center = createidentity(rows);
+    vector<vector<double>> rightMiddle  = create2dVec(rows,rows);
 
-    //Create a destination matrix with the right size 
-    vector<vector<double>> concatenated = create2dVec(intialMatrix.size()+toConcat.size(),intialMatrix[0].size());
+    //This function creates 3 rows in the large sparce matrix then concatenates them
+    //[0    ,0   ,A]
+    vector<vector<double>> sparce = concatenateCol(concatenateCol(leftTop,middletop),incident);
+    //[-A^T ,1   ,0]
+    vector<vector<double>> row2 = concatenateCol(concatenateCol(leftMiddle,center),rightMiddle);
     
-    //copy the intial matrix
-    for(int i = 0;i<intialMatrix.size();i++){
-        for(int j = 0;j<intialMatrix[0].size();j++){
-            concatenated[i][j] = intialMatrix[i][j];
-        }
-    }
-    for(int i = 0;i<toConcat.size();i++){
-        for(int j = 0;j<intialMatrix[0].size();j++){
-            concatenated[i+intialMatrix.size()][j] = toConcat[i][j];
-        }
-    }
-    return concatenated;
-}
+    /*
+    [0    ,0   ,A]
+    [-A^T ,1   ,0] */
+    sparce = concatenateRow(sparce,row2);
 
-//Takes the rows to swap and the CSC matrix also the column count of the CSC
-void swapRow(vector<vector<double>> &CSC,int row1index,int row2index){
-    //This swaps the rows of the CSC
-    for(int i = 0; i<CSC[0].size();i++){
-        //Check if rows match the desired values
-        if(CSC[0][i] == row1index){
-            CSC[0][i] = row2index;
-        }
-        else if(CSC[0][i] == row2index){
-            CSC[0][i] = row1index;
-        }
-    }
-    //Re-sort the the swapped columns to preserve order 
-    sortCSC(CSC);
-return;
+    //[0    ,M   ,N]
+    vector<vector<double>> row3 = concatenateCol(concatenateCol(Leftbottom,center),currentCoef);
+    
+    /*
+    [0    ,0   ,A]
+    [-A^T ,1   ,0]
+    [0    ,M   ,N] */
+    sparce =  concatenateRow(sparce,row3);
+    
+    //Return the sparce with the equals column
+    return concatenateCol(sparce,eqCol); 
 }
 
 //Sort the CSC array and then delete the 0 elements, his sorts the row columns then the columns
@@ -323,7 +244,7 @@ void sortCSC(vector<vector<double>> &CSC){
         //Bubble through the loop once 
         for(int j = 0;j<CSC[0].size()-1-i;j++){
             //Swap values if needed, this sorts rows and columns, the right side of the or is column sorting
-            if(CSC[0][j] > CSC[0][j+1] || CSC[0][j] == CSC[0][j+1] && CSC[1][j] > CSC[1][j+1]){
+            if(CSC[0][j] > CSC[0][j+1] || (CSC[0][j] == CSC[0][j+1] && CSC[1][j] > CSC[1][j+1])){
                 temp = CSC[0][j]; 
                 CSC[0][j] = CSC[0][j+1];
                 CSC[0][j+1] = temp;
@@ -354,11 +275,30 @@ void sortCSC(vector<vector<double>> &CSC){
     return; 
 }
 
+//Takes the rows to swap and the CSC matrix also the column count of the CSC
+void swapRow(vector<vector<double>> &CSC,int row1index,int row2index){
+    //This swaps the rows of the CSC
+    for(int i = 0; i<CSC[0].size();i++){
+        //Check if rows match the desired values
+        if(CSC[0][i] == row1index){
+            CSC[0][i] = row2index;
+        }
+        else if(CSC[0][i] == row2index){
+            CSC[0][i] = row1index;
+        }
+    }
+    //Re-sort the the swapped columns to preserve order 
+    sortCSC(CSC);
+return;
+}
+
 //Eliminate rows from a column so this will be called going down 
 void eliminateRowDown(vector<vector<double>> &CSC,int topRowIndex,int lowRowIndex,int operationCol){
 
-    double multiplicand,diagElement = 0;
-    int countCorrectRow,countOperRow = 0;
+    double multiplicand = 0;
+    double diagElement = 0;
+    int countCorrectRow = 0;
+    int countOperRow = 0;
 
     //Find the top left element to use
     for(int i = 0;i<CSC[0].size();i++){
@@ -426,7 +366,6 @@ void eliminateRowDown(vector<vector<double>> &CSC,int topRowIndex,int lowRowInde
             }
         }
     }
-    
     sortCSC(CSC);
     return;
 }
@@ -453,31 +392,33 @@ void solveCSC(vector<vector<double>> &CSC){
             //skip elements that are above the diagonal
             if(CSC[0][i] < CSC[1][i]);
                 //see if the diagonal has a non zero
-            else if (CSC[1][i] == sweepCol && CSC[0][i] == sweepCol &&  0 != CSC[2][i]){
+            else if ((int)CSC[1][i] == sweepCol && (int)CSC[0][i] == sweepCol &&  0 != (int)CSC[2][i]){
                 found1st = true;
             }
             //swap once you find the first element in the column swap 
-            else if (CSC[1][i] == sweepCol && found1st == false){
+            else if ((int)CSC[1][i] == sweepCol && found1st == false){
                 swapRow(CSC,sweepCol,(int)CSC[0][i]);
                 found1st = true;
             }
-            else if (CSC[1][i] == sweepCol && found1st == true){
+            else if ((int)CSC[1][i] == sweepCol && found1st == true){
                 eliminateRowDown(CSC,sweepCol,(int)CSC[0][i],sweepCol);
             }
         }   
     }
+
+   
 
     double rowFactor = 0;
     double row = 0; 
     //now do reduced row, divide the diagonals and get rref
     for(int i = 0;i<CSC[0].size();i++){
         row = CSC[0][i]; 
-        if(CSC[0][i] == CSC[1][i]){
+        if((int)CSC[0][i] == (int)CSC[1][i]){
             rowFactor = CSC[2][i]; 
         }
         int j = i;
         //divide through the row
-        while(j<CSC[0].size() && CSC[0][j] == row){
+        while(j<CSC[0].size() && (int)CSC[0][j] == row){
             i = j;
             CSC[2][j] = CSC[2][j]/rowFactor; 
             j++;
@@ -492,10 +433,10 @@ void solveCSC(vector<vector<double>> &CSC){
     for(int i = maxRow;i>=0;i--){
         //scan until you hit the right row value 
         for(int cscPointer = CSC[0].size()-1;cscPointer >= 0;cscPointer--){
-            if(CSC[0][cscPointer] == i){
+            if( (int)CSC[0][cscPointer] == i){
                 //go here if there is not a row in the CSC for the last column i.e. there is a 0 to the right of the equals
                 bool createRow = false;
-                if(( CSC[1][cscPointer] != maxCol)){
+                if(((int)CSC[1][cscPointer] != maxCol)){
                     createRow = true;
                     storeUnique[0][0] = i;
                     storeUnique[1][0] = maxCol;
@@ -504,7 +445,7 @@ void solveCSC(vector<vector<double>> &CSC){
                 double tempElim = 0;
                 double val;
                 //Substitute the values needed and the 0 out the stuff in the left side of the matrix
-                while(CSC[0][cscPointer] == i && CSC[0][cscPointer] != CSC[1][cscPointer] && cscPointer>=0){
+                while((int)CSC[0][cscPointer] == i && (int)CSC[0][cscPointer] != (int)CSC[1][cscPointer] && cscPointer>=0){
                     //back up and skip the stuff to the right of the equals sign
                     if(CSC[1][cscPointer] == maxCol)  cscPointer--;
                     else
@@ -545,41 +486,15 @@ void solveCSC(vector<vector<double>> &CSC){
     return;
 }
 
-//Matrix tools
-vector<vector<double>> transpose(vector<vector<double>> intialMatrix,int row,int col){
-    vector<vector<double>> transpose = create2dVec(col, row);
-
-    for(int i = 0;i<row;i++){
-        for(int j = 0;j<col;j++){
-            //I'm afraid of signed 0 
-                transpose[j][i] = intialMatrix[i][j];      
-        }
-    }
-    return transpose; 
-}
-
-//This flips the sign of all non zero array elements
-vector<vector<double>> negateMat(vector<vector<double>> intialMatrix,int rows,int columns){
-    vector<vector<double>> negation = create2dVec(rows, columns);
-
-    for(int i = 0;i<rows;i++){
-        for(int j = 0;j<columns;j++){
-            //I'm afraid of signed 0  
-            if(intialMatrix[i][j] != 0){
-                negation[i][j]  = -1*intialMatrix[i][j];
-            }
-        }
-    }
-    return negation; 
-}
-
 //Fetch the netlist string (this works)
-string getText(string fileName){
+string getText(){
     //Read the string from the file 
     string line;
     string net;
     ifstream myFile;
-    myFile.open(fileName,ios::in); 
+    myFile.open("netlist.txt",ios::in); 
+    
+    cout<<"getting text right now"<<endl;
     if(myFile.is_open()){
         while(getline(myFile, line) ){
             net += line + " ";
@@ -625,21 +540,24 @@ int countNodes(double nums[], int n){
             }
         }
     }
+  
+    
 
     int dplctCnt = 0;
     //Count the duplicates
     for(int i = 0; i<n-1;i++){
-        if(nums[i] != nums[i-1]){ 
+        if((int)nums[i] != (int)nums[i-1]){ 
             int j = 1+i;
             int tempDupCount = 0; 
-            while(nums[i] == nums[j] && j<n){
+            while((int)nums[i] == (int)nums[j] && j<n){
                 dplctCnt++; 
                 tempDupCount++; 
                 j++;
             }
             if(tempDupCount == 0 || dplctCnt == 0){
                 outText("bad circuit");
-                throw("Invalid circuit");
+                //throw("Invalid circuit");
+                return -1;
             }
         }
     }
@@ -656,7 +574,94 @@ int countRows(string line){
     return countRow; 
 }
 
-//Create an empty 2d vector with sizes
-vector<vector<double>> create2dVec(int row, int col){
-    return vector<vector<double>>(row, vector<double>(col,0.0));
+int main(){
+
+    //get the string form the file 
+    string line = getText();
+    //Count the number of rows
+    int countRow = countRows(line);
+    //Create a netlist with an order
+    
+    cout<<countRow;
+
+    if(countRow == 1){
+        return 0;
+    }
+
+    char* elementLabels = new char[countRow];    
+    //Create a dynamic array for the node labels and elements 
+    double* numsArr = new double[countRow*3];
+
+    int lmtpointer = 0;
+    int valPtr = 0;
+    int i = 0; 
+
+
+    while(i<line.length()){
+        string temp; 
+        
+        if(isalpha(line[i])){
+            //Copy the letter either V or R
+            if(line[i] != 'R' && line[i] != 'V'){
+                cout<<"Bad circuit, check element names for L,C, only use V,R"<<endl;
+                return 0;
+            }
+            temp += line[i++];
+           
+            //Skip over the net label numbers because that is now encoded in the element label order
+            while(isdigit(line[i++]))
+        
+            //Copy the element labels
+            elementLabels[lmtpointer++] = temp[0];
+        }
+        //Get elements until you hit the end of the "row" 
+        else if(isdigit(line[i])){  
+            string tempNum;
+        
+            while ((isdigit(line[i])||line[i] == '.') &&  i<line.length()){
+                tempNum += line[i++];
+            }
+            numsArr[valPtr++] = stod(tempNum);
+        }
+        //This will just catch odd cases or ends of lines 
+        else if((line[i] == ','||line[i] == ' ' || line[i] == '\r')) i++;
+    }
+
+    //Create two arrays, one for incident and one for couting the elements in the inicdent matrix
+    double* nodesCountArr = new double[countRow*2];
+    double* nodesCountCopy = new double[countRow*2];
+
+    
+   
+
+    int j = 0;
+    for(int i = 0; i<countRow*3;i++){
+        if( (i+1) % 3 != 0){
+            nodesCountArr[j] = numsArr[i];
+            nodesCountCopy[j++] = nodesCountArr[j];
+        }
+    }
+
+    int nodesCnt = countNodes(nodesCountCopy,countRow*2);
+    if(nodesCnt == -1){
+        return 0;
+    }
+    
+
+    //create the nessesary matricies
+    vector<vector<double>> incidentMatrix = createIncidence(nodesCountArr,nodesCnt,countRow);
+    vector<vector<double>> iCoef = iCoefficients(numsArr,elementLabels,countRow);
+    vector<vector<double>> eqCol = createEqualsColumn(elementLabels,numsArr,countRow,nodesCnt);
+    vector<vector<double>> CSC = sparceToCSC(createSparce(incidentMatrix,iCoef,eqCol,nodesCnt,countRow));
+    
+    //This works
+    solveCSC(CSC);
+
+    cout<<endl<<"cound lfsdigsd prob"<<endl;
+    
+    string result = extractResultString(CSC);
+    outText(result);
+   
+    cout<<result<<endl;
+    return 0;
 }
