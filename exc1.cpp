@@ -195,9 +195,7 @@ vector<vector<double>> sparceToCSC(vector<vector<double>> sparce) {
             }
         }
     }
-
-
-
+    
     return CSC;
 }
 
@@ -277,6 +275,7 @@ void sortCSC(vector<vector<double>> &CSC){
 
 //Takes the rows to swap and the CSC matrix also the column count of the CSC
 void swapRow(vector<vector<double>> &CSC,int row1index,int row2index){
+    cout<<"swapped"<<endl;
     //This swaps the rows of the CSC
     for(int i = 0; i<CSC[0].size();i++){
         //Check if rows match the desired values
@@ -294,7 +293,7 @@ return;
 
 //Eliminate rows from a column so this will be called going down 
 void eliminateRowDown(vector<vector<double>> &CSC,int topRowIndex,int lowRowIndex,int operationCol){
-
+    cout<<"eliminated"<<endl;
     double multiplicand = 0;
     double diagElement = 0;
     int countCorrectRow = 0;
@@ -342,6 +341,7 @@ void eliminateRowDown(vector<vector<double>> &CSC,int topRowIndex,int lowRowInde
     int dstPointer = 0; 
   
     for(int i = 0; i<countCorrectRow;i++){
+        
         //Eliminate a row if possible or add elements with same row and col values
         if(copyFixedRow[1][i] == copyOperRow[1][dstPointer]){
             copyOperRow[2][dstPointer] = copyFixedRow[2][i]+copyOperRow[2][dstPointer];
@@ -380,18 +380,20 @@ void solveCSC(vector<vector<double>> &CSC){
         if((int)CSC[0][i] >maxRow) maxRow = (int)CSC[0][i];
         if((int)CSC[1][i] > maxCol) maxCol = (int)CSC[1][i];
     }
+    
 
     //This does Row echelon form and solves down 
     //Create the row echelon matrix by looking down each col (metaphorically)
     for(int sweepCol = 0;sweepCol<maxCol-1;sweepCol++){
-        
+        cout<<maxCol<<endl;
+        cout<<"Sweep col is"<<sweepCol<<endl;
         bool found1st = false;
         //find the first column index in each row
         for(int i = 0;i<CSC[0].size();i++){
         
             //skip elements that are above the diagonal
-            if(CSC[0][i] < CSC[1][i]);
-                //see if the diagonal has a non zero
+            if(CSC[0][i] < CSC[1][i]){
+            }
             else if ((int)CSC[1][i] == sweepCol && (int)CSC[0][i] == sweepCol &&  0 != (int)CSC[2][i]){
                 found1st = true;
             }
@@ -401,12 +403,30 @@ void solveCSC(vector<vector<double>> &CSC){
                 found1st = true;
             }
             else if ((int)CSC[1][i] == sweepCol && found1st == true){
+                cout<<"i is"<<i<<endl;
                 eliminateRowDown(CSC,sweepCol,(int)CSC[0][i],sweepCol);
             }
+            else if(CSC[0][i] > maxRow){
+                break;
+            }
+            cout<<CSC[0].size();
         }   
+        cout<<"hfefefkelfef"<<endl;
+        for(int i = 0; i<3;i++){
+            for(int j = 0;j<CSC[0].size();j++){
+                cout<<setw(4)<<CSC[i][j];
+        }
+        cout<<endl;
+    }
     }
 
-   
+    cout<<"hfefefkelfef"<<endl;
+    for(int i = 0; i<3;i++){
+        for(int j = 0;j<CSC[0].size();j++){
+            cout<<setw(4)<<CSC[i][j];
+        }
+        cout<<endl;
+    }
 
     double rowFactor = 0;
     double row = 0; 
@@ -631,8 +651,6 @@ int main(){
     double* nodesCountArr = new double[countRow*2];
     double* nodesCountCopy = new double[countRow*2];
 
-    
-   
 
     int j = 0;
     for(int i = 0; i<countRow*3;i++){
