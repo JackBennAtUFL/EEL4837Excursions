@@ -1,5 +1,3 @@
-//This is where we will write stuff 
-
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -7,70 +5,76 @@
 #include <vector>
 #include <cstdlib>
 #include <iomanip>
+#include <sstream>
+
 
 using namespace std; 
 
-string getText(string fileName); 
+//Create the icoefficients matrix
+vector<vector<double>> iCoefficients(double numsArr[], char labels[], int rows);
 
-int deduplicate(double nums[], int n );
+vector<vector<double>> createEqualsColumn(char labels[], double numsArr[], int rows, int nodes);
 
-void bubbleSort(double nums[],int n);
+vector<vector<double>> createIncidence(double nodesCountArr[], int &nodes, int branches);
+
+string getText(string fileName);
+
+void outText(string outputStr);
+
+int deduplicate(double nums[], int n);
+
+void bubbleSort(double nums[], int n);
 
 int countRows(string line);
 
-double** voltageArray(char labels[],double numsArr[],int rows);
+vector<vector<double>> create2dVec(int row, int col);
 
-double** gen2DArray(int row, int col);
-    
-double** createIncidence(double nodesCountArr[],int &nodes,int branches);
+vector<vector<char>> create2dVecChar(int row, int col);
 
-double** concatenateCol(double** intialMatrix,int rows,int columns,double** toConcatenate,int concatColumns);
+vector<vector<double>> concatenateCol(vector<vector<double>> intialMatrix,vector<vector<double>>toConcat);
+vector<vector<double>> concatenateRow(vector<vector<double>> intialMatrix,vector<vector<double>>toConcat);
 
-double** negateMat(double** intialMatrix,int rows,int columns);
+vector<vector<double>> negateMat(vector<vector<double>> intialMatrix,int rows,int columns);
 
-double** transpose(double** intialMatrix,int row,int col);
+vector<vector<double>> transpose(vector<vector<double>> intialMatrix,int row,int col);
 
-double** iCoefficients(double numsArr[],char labels[],int rows);
+vector<vector<double>> createIncidence(double nodesCountArr[],int &nodes,int branches);
 
-double** createSparce(double** incident,double** currentCoef,int nodes,int rows,double** equalsCol);
+vector<vector<double>> createidentity(int size);
 
-double** sparceToCSC(double** sparce,int row,int col,int &countElmt);
+vector<vector<double>> createSparce(vector<vector<double>> incident,vector<vector<double>> currentCoef,vector<vector<double>> eqCol,int nodes,int rows);
 
-double** createEqualsColumn(char labels[],double numsArr[],int rows, int nodes);
+vector<vector<double>> sparceToCSC(vector<vector<double>> sparce);
 
-double** solveCSC(double** CSC,int col,int row, int &countElmt,double** swapTracker);
+void solveCSC(vector<vector<double>> &CSC);
 
-void swapRow(double** CSC,int row1index,int row2index,int cols,double** swapTracker);
+void swapRow(vector<vector<double>> &CSC,int row1index,int row2index);
 
-void sortCSC(double** CSC,int cols);
+void sortCSC(vector<vector<double>> &CSC);
 
-void deleteCSCzeros(double** CSC,int &col);
+void eliminateRowDown(vector<vector<double>> &CSC,int topRowIndex,int lowRowIndex,int operationCol);
 
-void eliminateRow(double** CSC,int topRowIndex,int lowRowIndex,int operationCol,int &cols);
+//Takes a sorted array and deletes the zeros from the front 
+void deleteCSCzeros(vector<vector<double>> &CSC);
+
+string extractResultString(vector<vector<double>> CSC);
 
 int main(){
 
     //get the string form the file 
     string line = getText("netlist.txt");
-    
     //Count the number of rows
     int countRow = countRows(line);
-    
     //Create a netlist with an order
-    char* elementLabels = new char[countRow];
-    
+    char* elementLabels = new char[countRow];    
     //Create a dynamic array for the node labels and elements 
     double* numsArr = new double[countRow*3];
-    
 
     int lmtpointer = 0;
     int valPtr = 0;
     int numsArrSze = 0;
 
     int i = 0; 
-
-    //Parse the netlist here because putting in functions will cause massive problems
-    //With the returned arrays
 
     while(i<line.length()){
         string temp; 
@@ -121,7 +125,7 @@ int main(){
         }
 
     }
-    
+
     double* nodesCountArr = new double[countRow*2];
     
     //Only for deduplicate
@@ -135,49 +139,650 @@ int main(){
             j++;
         }
     }
-    
+
     int nodesCnt = deduplicate(nodesCountCopy,countRow*2);
 
-    delete [] nodesCountCopy;
-   
-    double** incidentMatrix = createIncidence(nodesCountArr,nodesCnt,countRow);
+    vector<vector<double>> incidentMatrix = createIncidence(nodesCountArr,nodesCnt,countRow);
     
-    double** iCoeff = iCoefficients(numsArr,elementLabels,countRow);
+    vector<vector<double>> iCoef = iCoefficients(numsArr,elementLabels,countRow);
 
-    double** equalsColumn = gen2DArray(countRow*2+nodesCnt,1);
+    vector<vector<double>> eqCol = createEqualsColumn(elementLabels,numsArr,countRow,nodesCnt);
 
-    double** equalsCol = createEqualsColumn(elementLabels,numsArr,countRow,nodesCnt);
+    vector<vector<double>> sparce = createSparce(incidentMatrix,iCoef,eqCol,nodesCnt,countRow);
 
-    double** sparce = createSparce(incidentMatrix,iCoeff,nodesCnt,countRow,equalsCol);
+    vector<vector<double>> CSC = sparceToCSC(sparce);
     
-    int countElmt = 0;
+    //These are useful to have
+    int sparceHeight = countRow*2+nodesCnt;
+    int sparceWidth = sparceHeight; 
 
-    double** CSC = sparceToCSC(sparce,countRow*2+nodesCnt,countRow*2+nodesCnt+1,countElmt); 
-
-    //This will track the swaps, so you know where variables end up
-    double** swapTracker = gen2DArray(countRow*2+nodesCnt,1);
-    for(int i = 0;i<countRow*2+nodesCnt;i++){
-        swapTracker[i][0] = i;
-    }
-
-
-    swapRow(CSC,0,2,countElmt,swapTracker);
-    //cout here
-
-    eliminateRow(CSC,0,3,0,countElmt);
-    
-    cout<<"sdfghjkl"<<endl<<endl;
-    for(int i = 0;i<3;i++){
-        for(int j = 0;j<countElmt;j++){
-            cout <<CSC[i][j]<<" ";
+    for(int i = 0;i<sparce.size();i++){
+        for(int j = 0;j<sparce[0].size();j++){
+            cout<<setw(4)<<sparce[i][j]<<" ";
         }
         cout<<endl;
     }
 
-    return 0; 
-}   
+    //This works
+    solveCSC(CSC);
+    
+    string result = extractResultString(CSC);
+
+    outText(result);
+
+    return 0;
+}
 
 
+string extractResultString(vector<vector<double>> CSC){
+
+    string result;
+
+    for(int i = 0;i<CSC[0].size();i++){
+        ostringstream temp; 
+        string tempString;
+        int prc = 3;
+        if( (int)CSC[0][i] != (int)CSC[1][i]){    
+            temp << fixed<<setprecision(prc)<<CSC[2][i];
+           
+            tempString = temp.str();
+            //Now search through temp    
+            while(tempString[tempString.length()-1] == '0' && prc >= 0){
+                temp << fixed<<setprecision(prc)<<CSC[2][i];
+                tempString.erase();
+                tempString = temp.str();
+                temp.str("");
+                prc--; 
+            }
+        }
+        result = result + " " + tempString;
+    }
+    return result;
+}
+
+vector<vector<double>> sparceToCSC(vector<vector<double>> sparce){
+
+    int row = sparce.size();
+    int col = sparce[0].size();
+    int cscWidth = 0;
+
+    cout<<"row"<<col<<endl;
+    //Count the non 0 elements in the sparce matrix
+    for(int i = 0;i<row;i++){
+        for(int j = 0;j<col;j++){
+            if(sparce[i][j] != 0){
+                cscWidth++;
+            }
+        }
+    }
+    //Generate destination array for the CSC
+    vector<vector<double>> CSC = create2dVec(3,cscWidth);
+    
+    
+    //Traverse the sparce and copy elements that are non-zere
+    int CSCPoint = 0;
+    for(int i = 0;i<row;i++){
+        for(int j = 0;j<col;j++){
+            if(sparce[i][j] != 0){
+                //column
+                CSC[0][CSCPoint] = i;
+                //row
+                CSC[1][CSCPoint] = j;
+                //Value and increment dest column pointer
+                CSC[2][CSCPoint++] = sparce[i][j];
+            }
+        }
+    }
+    return CSC;
+}
+
+vector<vector<double>> createSparce(vector<vector<double>> incident,vector<vector<double>> currentCoef,vector<vector<double>> eqCol,int nodes,int rows){
+
+    vector<vector<double>> leftTop = create2dVec(nodes,nodes);
+    vector<vector<double>> leftMiddle = negateMat(transpose(incident,nodes,rows),rows,nodes);
+    vector<vector<double>> Leftbottom = create2dVec(rows,nodes);  
+    vector<vector<double>> middletop = create2dVec(nodes,rows);
+    vector<vector<double>> center = createidentity(rows);
+    vector<vector<double>> middleBottom = createidentity(rows);
+    vector<vector<double>> rightMiddle  = create2dVec(rows,rows);
+
+      //This creates 3 rows in the large sparce matrix
+    /*
+    [0    ,0   ,A]
+    [-A^T ,1   ,0]
+    [0    ,M   ,N]
+    */
+
+    //[0    ,0   ,A]
+    vector<vector<double>> row1step1 = concatenateCol(leftTop,middletop);
+    vector<vector<double>> row1 = concatenateCol(row1step1,incident);
+    //[-A^T ,1   ,0]
+    vector<vector<double>> row2step1 = concatenateCol(leftMiddle,center);
+    vector<vector<double>> row2 = concatenateCol(row2step1,rightMiddle);
+    //[0    ,M   ,N]
+
+    vector<vector<double>> row3step1 = concatenateCol(Leftbottom,center);
+    vector<vector<double>> row3 = concatenateCol(row3step1,currentCoef);
+
+    /*
+    [0    ,0   ,A]
+    [-A^T ,1   ,0]
+    */
+    vector<vector<double>> row1and2 = concatenateRow(row1,row2);
+    
+    /*
+    [0    ,0   ,A]
+    [-A^T ,1   ,0]
+    [0    ,M   ,N]
+    */
+    vector<vector<double>> row123 = concatenateRow(row1and2,row3);
+
+    vector<vector<double>> sparce = concatenateCol(row123,eqCol); 
+
+    return sparce;
+}
+
+vector<vector<double>> iCoefficients(double numsArr[],char labels[],int rows){
+
+    vector<vector<double>> icoeff = create2dVec(rows,rows);
+    
+    //Only copy a coeffcient if the corresponding element is a resistor
+    for(int i = 0; i<rows;i++){
+        if(labels[i] == 'R'){
+            icoeff[i][i] = -1*numsArr[3*i+2];
+        }
+    }
+    return icoeff;
+}
+
+vector<vector<double>> createEqualsColumn(char labels[],double numsArr[],int rows,int nodes){
+
+    vector<vector<double>> equalsColumn =create2dVec(rows*2+nodes,1);
+
+    for(int i = 0;i<rows;i++){
+        if(labels[i] == 'V'){
+            equalsColumn[i+rows+nodes][0] = numsArr[i*3+2];
+        }
+    }
+    return equalsColumn;
+}
+//Creates the in cident matrix 
+vector<vector<double>> createIncidence(double nodesCountArr[],int &nodes,int branches){
+    
+    vector<vector<double>> incidentMatrix = create2dVec(nodes - 1,branches);
+    
+    //Create the incident matrix
+    for(int i = 0;i<branches*2;i++){
+        if(nodesCountArr[i] == 0){
+
+        }
+        else if(i % 2 == 0 ){
+            incidentMatrix[(int)(nodesCountArr[i]-1)][i/2] = 1; 
+        }
+        else{
+            incidentMatrix[(int)(nodesCountArr[i]-1)][i/2] = -1; 
+        }
+    } 
+    nodes--; 
+
+    return incidentMatrix;
+}
+
+vector<vector<double>> createidentity(int size){
+
+    vector<vector<double>> identity = create2dVec(size,size);
+
+    for(int i = 0;i<size;i++){
+        identity[i][i] = 1;
+    }
+    return identity; 
+
+}
+
+//Important note, the initial matrix will be to the left and the matrix "to concatenate" will be
+//added on the right
+vector<vector<double>> concatenateCol(vector<vector<double>> intialMatrix,vector<vector<double>>toConcat){
+
+    int rows = intialMatrix.size();
+    int colsL = intialMatrix[0].size();  
+    int colsR = toConcat[0].size();  
+
+    //Create a destination matrix with the right size 
+    vector<vector<double>> concatenated = create2dVec(rows,colsL+colsR);
+    
+    
+    
+    //copy the intial matrix
+    for(int i = 0;i<rows;i++){
+        for(int j = 0;j<colsL;j++){
+                concatenated[i][j] = intialMatrix[i][j];
+        }
+    }
+    //Add the concatenated matrix appropriantely
+    for(int i = 0;i<rows;i++){
+        for(int j = 0;j<colsR;j++){
+            concatenated[i][j+colsL] = toConcat[i][j];
+        }
+    }
+    return concatenated;   
+}
+
+//Important note, the initial matrix will be on top and the matrix "to concatenate" will be
+//added on the bottom
+vector<vector<double>> concatenateRow(vector<vector<double>> intialMatrix,vector<vector<double>>toConcat){
+
+    int rowsT = intialMatrix.size();
+    int cols = intialMatrix[0].size();  
+    int rowsB = toConcat.size();  
+
+    //Create a destination matrix with the right size 
+    vector<vector<double>> concatenated = create2dVec(rowsT+rowsB,cols);
+    
+    //copy the intial matrix
+    for(int i = 0;i<rowsT;i++){
+        for(int j = 0;j<cols;j++){
+                concatenated[i][j] = intialMatrix[i][j];
+        }
+    }
+    for(int i = 0;i<rowsB;i++){
+        for(int j = 0;j<cols;j++){
+            concatenated[i+rowsT][j] = toConcat[i][j];
+        }
+    }
+    
+    return concatenated;
+   
+}
+
+//Takes the rows to swap and the CSC matrix also the column count of the CSC
+void swapRow(vector<vector<double>> &CSC,int row1index,int row2index){
+    //This swaps the rows of the CSC
+    for(int i = 0; i<CSC[0].size();i++){
+        //Check if rows match the desired values
+        if(CSC[0][i] == row1index){
+            CSC[0][i] = row2index;
+        }
+        else if(CSC[0][i] == row2index){
+            CSC[0][i] = row1index;
+        }
+    }
+    //Re-sort the the swapped columns to preserve order 
+    sortCSC(CSC);
+return;
+}
+
+//Using bubble sort to make it easier
+void sortCSC(vector<vector<double>> &CSC){
+
+    double tempRow;
+    double tempCol;
+    double tempVal;
+    //This sorts the row columns then the columns
+
+    //Loop that decrements the "maximum element" which is sorted
+    for(int i = 0;i<CSC[0].size()-1;i++){
+        //Bubble through the loop once 
+        for(int j = 0;j<CSC[0].size()-1-i;j++){
+            //Swap values if needed
+            if(CSC[0][j] > CSC[0][j+1]){
+                tempRow = CSC[0][j]; 
+                tempCol = CSC[1][j];
+                tempVal = CSC[2][j];
+
+                CSC[0][j] = CSC[0][j+1];
+                CSC[1][j] = CSC[1][j+1];
+                CSC[2][j] = CSC[2][j+1];
+
+                CSC[0][j+1] = tempRow;
+                CSC[1][j+1] = tempCol;
+                CSC[2][j+1] = tempVal; 
+            }
+        }
+    }
+    for(int i = 0;i<CSC[0].size()-1;i++){
+        //Bubble through the loop once 
+        for(int j = 0;j<CSC[0].size()-1-i;j++){
+            //Swap values if needed
+            if(CSC[0][j] == CSC[0][j+1] && CSC[1][j] > CSC[1][j+1]){
+                tempRow = CSC[0][j]; 
+                tempCol = CSC[1][j];
+                tempVal = CSC[2][j];
+
+                CSC[0][j] = CSC[0][j+1];
+                CSC[1][j] = CSC[1][j+1];
+                CSC[2][j] = CSC[2][j+1];
+
+                CSC[0][j+1] = tempRow;
+                CSC[1][j+1] = tempCol;
+                CSC[2][j+1] = tempVal; 
+            }
+        }
+    }
+
+    return;
+}
+
+void eliminateRowDown(vector<vector<double>> &CSC,int topRowIndex,int lowRowIndex,int operationCol){
+
+    int cols = CSC[0].size();
+
+
+    double diagElement = 1; 
+    //out<<"Diag El"<<diagElement;
+    //Find the top left element to use
+    for(int i = 0;i<cols;i++){
+        if((int)CSC[0][i] == topRowIndex && (int)CSC[1][i] == operationCol){
+            diagElement = CSC[2][i];
+        }
+    }
+
+    double multiplicand = 0; 
+    //Find the element to eliminate 
+    for(int i = 0;i<cols;i++){
+        if( (int)CSC[0][i] == lowRowIndex && (int)CSC[1][i] == operationCol){
+            multiplicand = CSC[2][i]/diagElement;
+        }
+    }
+
+    int countCorrectRow = 0;
+    //count the elements with the initial row index
+    for(int i = 0;i<cols;i++){
+        if((int)CSC[0][i] == topRowIndex){
+            countCorrectRow++; 
+        }
+        if(CSC[0][i] != topRowIndex && countCorrectRow != 0){
+            break; 
+        }
+    }
+    
+    vector<vector<double>> copyFixedRow = create2dVec(3,countCorrectRow);
+    
+    //generate array for the row that is being operated on 
+    int countOperRow = 0;
+    for(int i = 0;i<cols;i++){
+        if(CSC[0][i] == lowRowIndex){
+            countOperRow++; 
+        }
+        if(CSC[0][i] != lowRowIndex && countOperRow != 0){
+            break; 
+        }
+    }
+    
+    vector<vector<double>> copyOperRow = create2dVec(3,countOperRow);
+
+    //Extract the initial row times by the multiplicand and -1 to prepare of addition 
+    int copyPointerFixed =  0;
+    int copyPointerOper =  0;
+
+    for(int i = 0;i<cols;i++){
+        if((int)CSC[0][i] == topRowIndex){
+            copyFixedRow[0][copyPointerFixed] = CSC[0][i];
+            copyFixedRow[1][copyPointerFixed] = CSC[1][i];
+            copyFixedRow[2][copyPointerFixed] = -multiplicand*CSC[2][i];
+            copyPointerFixed++; 
+        }
+        //Extract the row to operate on
+        if((int)CSC[0][i] == lowRowIndex){
+            copyOperRow[0][copyPointerOper] = CSC[0][i];
+            copyOperRow[1][copyPointerOper] = CSC[1][i];
+            copyOperRow[2][copyPointerOper] = CSC[2][i];
+            copyPointerOper++; 
+        }   
+    }
+  
+    //Now add the 2 matricies using sum as limit for robustness
+    vector<vector<double>> storeUnique = create2dVec(3,1);
+    int dstPointer = 0; 
+    int counter = 0;
+
+    
+    for(int i = 0; i<countCorrectRow;i++){
+        //Eliminate a row if possible or add elements with same value
+        if(copyFixedRow[1][i] == copyOperRow[1][dstPointer]){
+            copyOperRow[2][dstPointer] = copyFixedRow[2][i]+copyOperRow[2][dstPointer];
+            dstPointer++;
+        }
+        else{
+            vector<vector<double>> storeUnique = create2dVec(3,1);
+
+            storeUnique[0][0] = lowRowIndex;
+            storeUnique[1][0] = copyFixedRow[1][i];
+            storeUnique[2][0] = copyFixedRow[2][i];
+
+            CSC = concatenateCol(CSC,storeUnique);
+
+        }
+    
+    } 
+    for(int i = 0;i<countOperRow;i++){
+        for(int j = 0;j<cols;j++){
+            //Check if row and col value match if so overwrite the values
+            if(copyOperRow[0][i] == CSC[0][j] && copyOperRow[1][i] == CSC[1][j]){
+                CSC[2][j] = copyOperRow[2][i];
+            }
+        }
+    }
+    
+    sortCSC(CSC);
+
+    deleteCSCzeros(CSC);
+
+    return;
+}
+
+//This takes a sorted CSC matrix
+void solveCSC(vector<vector<double>> &CSC){
+
+    //Find the max row and column values
+    int maxRow = 0;
+    int maxCol = 0;
+    for(int i = 0;i<CSC[0].size();i++){
+        if((int)CSC[0][i] >maxRow) maxRow = (int)CSC[0][i];
+        if((int)CSC[1][i] > maxCol) maxCol = (int)CSC[1][i];
+    }
+
+    //This does Row echelon form and solves down 
+    int count = 0;
+    //Create the row echelon matrix  
+    //look down each col (metaphorically)
+    for(int sweepCol = 0;sweepCol<maxCol-1;sweepCol++){
+        
+        bool found1st = false;
+
+        //find the first column index in each row
+        for(int i = 0;i<CSC[0].size();i++){
+        
+            //skip elements that are above the diagonal
+            if(CSC[0][i] < CSC[1][i]){
+            }
+                //see if the diagonal has a non zero
+            else if (CSC[1][i] == sweepCol && CSC[0][i] == sweepCol &&  0 != CSC[2][i]){
+                found1st = true;
+            }
+            //swap once you find the first element in the column swap 
+            else if (CSC[1][i] == sweepCol && found1st == false){
+                swapRow(CSC,sweepCol,(int)CSC[0][i]);
+                found1st = true;
+            }
+            else if (CSC[1][i] == sweepCol && found1st == true){
+                eliminateRowDown(CSC,sweepCol,(int)CSC[0][i],sweepCol);
+            }
+        }
+        
+    }
+
+    double rowFactor = 0;
+    double row = 0; 
+    //now do reduced row, divide the diagonals and get rref
+    for(int i = 0;i<CSC[0].size();i++){
+        row = CSC[0][i]; 
+        if(CSC[0][i] == CSC[1][i]){
+            rowFactor = CSC[2][i]; 
+        }
+        int j = i;
+        while(j<CSC[0].size() && CSC[0][j] == row){
+            
+            i = j;
+            CSC[2][j] = CSC[2][j]/rowFactor; 
+            j++;
+        }        
+    }
+
+
+
+    ///////////////////////////////////Problem somewhere in here 
+    //next do the back substitution
+    vector<vector<double>> solutions = create2dVec(maxRow,1);
+
+    vector<vector<double>> storeUnique = create2dVec(3,1);
+
+    //Iterate through all of the rows to solve
+    for(int i = maxRow;i>=0;i--){
+        //scan until you hit the right row value 
+        for(int cscPointer = CSC[0].size()-1;cscPointer >= 0;cscPointer--){
+            cout<<cscPointer<<endl;
+            cout<<i<<endl;
+            if(CSC[0][cscPointer] == i){
+                if(( CSC[1][cscPointer] != maxCol)){
+                    
+                    storeUnique[0][0] = i;
+                    storeUnique[1][0] = maxCol;
+                    storeUnique[2][0] = 0; 
+
+                    double tempElim = 0;
+                    //Substitute the values needed and the 0 out the stuff in the left side of the matrix
+                    while(CSC[0][cscPointer] == i && CSC[0][cscPointer] != CSC[1][cscPointer] && cscPointer>=0){
+                        if(CSC[1][cscPointer] == maxCol){
+                            cscPointer--;
+                        }
+                        else{
+                            //search for row and column return value of the prior rows
+                            double val; 
+                            for(int search = CSC[0].size()-1;search>= 0;search--){
+                                if(CSC[1][cscPointer] == CSC[0][search] && CSC[1][search] == maxCol){
+                                    val =  CSC[2][search];
+                                    break;
+                                }
+                            }
+                        
+                            tempElim = tempElim - CSC[2][cscPointer]*val; 
+                            CSC[2][cscPointer] = 0; 
+                            cscPointer--; 
+                        }
+                    }
+                    //cout<<tempElim<<endl;
+                    //concatenate the unique row and sort 
+                    cout<<"did it get here"<<endl;
+                    storeUnique[2][0]  = tempElim;
+                    CSC = concatenateCol(CSC,storeUnique);
+                    sortCSC(CSC);
+                    deleteCSCzeros(CSC);
+
+                }
+                else{
+                    double tempElim = 0;
+                    double val = 0; 
+                    //Substitute the values needed and the 0 out the stuff in the left side of the matrix
+                    while(CSC[0][cscPointer] == i && (CSC[0][cscPointer] != CSC[1][cscPointer]) && cscPointer>=0){
+                        if(CSC[1][cscPointer] == maxCol){
+                            cscPointer--;
+                        }
+                        else{
+                            //search for row and column return value of the prior rows
+                            for(int search = CSC[0].size()-1;search>= 0;search--){
+                                if(CSC[1][cscPointer] == CSC[0][search] && CSC[1][search] == maxCol){
+                                    val =  CSC[2][search];
+                                    cout<<"val is"<<val<<endl;
+                                    cout<<"search is"<<search<<endl;
+                                    break;
+                                }
+                            }
+
+                            cout<<"telemetry"<<endl;
+                            cout<<"temp elim pre is: "<<tempElim<<endl;
+                            tempElim = tempElim - CSC[2][cscPointer]*val;
+                            cout<<"temp elim post is: "<<tempElim<<endl;
+                            // deleteCSCzeros(CSC);
+                            // sortCSC(CSC); 
+                            CSC[2][cscPointer] = 0; 
+                            cscPointer--; 
+                        }
+                    }
+                    //copy the new value to the equals column 
+                    cout<<"here"<<endl;
+                    for(int j = 0;j<CSC[0].size()-1;j++){
+                        if(CSC[0][j] == i && CSC[1][j] == maxCol){
+                            CSC[2][j] = CSC[2][j]+tempElim;
+                        }
+                    }
+                    
+                    
+                }
+                cout<<"break"<<endl;
+                int k = 0;
+                for(int j = 0;j<3;j++){
+                    for(int i = 0;i<CSC[0].size();i++){
+                        cout<<setw(7)<<setprecision(3)<<CSC[j][i];
+                    }
+                    cout<<endl;
+                }
+                break;
+            }
+        }
+    }
+
+    return;
+}
+
+//Takes a sorted array and deletes the zeros from the front 
+void deleteCSCzeros(vector<vector<double>> &CSC){
+    
+    int col = CSC[0].size();
+    int colCountNew = 0; 
+    for(int i = 0;i<col;i++){
+        
+        if(CSC[2][i] != 0){
+            //left shift everything
+            CSC[0][colCountNew] = CSC[0][i];
+            CSC[1][colCountNew] = CSC[1][i];
+            CSC[2][colCountNew] = CSC[2][i];
+            colCountNew++;
+        }
+    }
+    for(int i = 0;i<3;i++){
+        CSC[i].resize(colCountNew);
+    }
+    return; 
+}
+
+//Matrix tools
+vector<vector<double>> transpose(vector<vector<double>> intialMatrix,int row,int col){
+    vector<vector<double>> transpose = create2dVec(col, row);
+
+    for(int i = 0;i<row;i++){
+        for(int j = 0;j<col;j++){
+            //I'm afraid of signed 0 
+                transpose[j][i]  = 1*intialMatrix[i][j];      
+        }
+    }
+    return transpose; 
+
+}
+
+//This flips the sign of all non zero array elements
+vector<vector<double>> negateMat(vector<vector<double>> intialMatrix,int rows,int columns){
+    vector<vector<double>> negation = create2dVec(rows, columns);
+
+    for(int i = 0;i<rows;i++){
+        for(int j = 0;j<columns;j++){
+            //I'm afraid of signed 0 
+            if( -1*intialMatrix[i][j] != 0){
+                negation[i][j]  = -1*intialMatrix[i][j];
+            }
+        }
+    }
+    return negation; 
+}
 //Fetch the netlist string (this works)
 string getText(string fileName){
 
@@ -196,6 +801,22 @@ string getText(string fileName){
 
     return line; 
 }
+
+void outText(string outputStr){
+
+    ofstream myFile;
+    myFile.open("output.txt",ios::out); //read
+    if(myFile.is_open()){
+        myFile<<outputStr<<endl; 
+        myFile.close();
+    }
+    else{
+        cout<<"file write failed"<<endl;
+    }  
+
+    return; 
+}
+
 
 //These are used to find the number of unique nodes or kill the program is a circuit is bad
 int deduplicate(double nums[], int n ){
@@ -250,7 +871,6 @@ int deduplicate(double nums[], int n ){
 
     return size;
 }
-
 void bubbleSort(double nums[],int n){
     double temp;
 
@@ -268,7 +888,6 @@ void bubbleSort(double nums[],int n){
     }
     return;
 }
-
 //Count the number of rows
 int countRows(string line){
     int countRow = 0;
@@ -281,530 +900,11 @@ int countRows(string line){
     return countRow; 
 }
 
-//Creates a 2D dynamic array to be used for the matrix math
-//|||||ENSURE TO DELETE ARRAY WHEN FINISHED TO PREVENT MEMORY LEAKS!!!|||||
-//Delete subarrays first then the full array
-//-----***-----
-double** gen2DArray(int row, int col){
-
-    //Creates a pointer array of pointers of the double data type (2D array pointer)
-    double** totArray = new double*[row];
-
-    //Interates across the all of the rows and inserts another array within each index
-    for(int i = 0; i < row; i++){
-        totArray[i] = new double[col];
-
-        //Fills the pointer array with zeros
-        for(int j = 0; j < col; j++){
-            totArray[i][j] = 0.0;
-        }
-    }
-
-    //Returns the final array
-    return totArray;
-
+vector<vector<double>> create2dVec(int row, int col){
+    vector<vector<double>> v  = vector<vector<double>>(row, vector<double>(col,0.0));
+    return v;
 }
-//-----***-----
-
-double** voltageArray(char labels[],double numsArr[],int rows){
-    
-    int row = 0;
-
-    for(int i = 0;i<rows;i++){
-        
-        //Count the number of voltage sources 
-        if(labels[i] == 'V'){
-            row++;
-        }
-    }
-
-    double** voltageSources = gen2DArray(rows, 1);
-
-    int j = 0; 
-    for(int i = 0;i<rows;i++){
-
-        if(labels[i] == 'V'){
-            voltageSources[j][0] = numsArr[3*i+2];
-            j++;
-        }
-
-    }
-
-    return voltageSources; 
-}
-
-double** createIncidence(double nodeCountArr[],int &nodes,int branches){
-    
-    double** incidentMatrix = gen2DArray(nodes-1,branches);
-    
-    cout<<branches<<endl;
-
-    //Create the incident matrix
-    for(int i = 0;i<branches*2;i++){
-        if(nodeCountArr[i] == 0){
-
-        }
-        else if(i % 2 == 0 ){
-            incidentMatrix[(int)(nodeCountArr[i]-1)][i/2] = 1; 
-        }
-        else{
-            incidentMatrix[(int)(nodeCountArr[i]-1)][i/2] = -1; 
-        }
-    } 
-    nodes--; 
-
-    return incidentMatrix;
-}
-
-//Important note, the initial matrix will be to the left and the matrix "to concatenate" will be
-//added on the right
-double** concatenateCol(double** intialMatrix,int rows,int columns,double** toConcatenate,int concatColumns){
-
-    //Create a destination matrix with the right size 
-    double** concatenated = gen2DArray(rows,columns+concatColumns);
-    
-    //copy the intial matrix
-    for(int i = 0;i<rows;i++){
-        for(int j = 0;j<columns;j++){
-                concatenated[i][j] = intialMatrix[i][j];
-        }
-    
-        for(int j = 0;j<concatColumns;j++){
-            concatenated[i][j+columns] = toConcatenate[i][j];
-        }
-    }
-    
-    return concatenated;
-   
-}
-
-//Important note, the initial matrix will be on top and the matrix "to concatenate" will be
-//added on the bottom
-double** concatenateRow(double** intialMatrix,int rows,int columns,double** toConcatenate,int concatRows){
-
-    //Create a destination matrix with the right size 
-    double** concatenated = gen2DArray(rows+concatRows,columns);
-    
-    //copy the intial matrix
-    for(int i = 0;i<rows;i++){
-        for(int j = 0;j<columns;j++){
-                concatenated[i][j] = intialMatrix[i][j];
-        }
-    }
-    for(int i = 0;i<concatRows;i++){
-        for(int j = 0;j<columns;j++){
-            concatenated[i+rows][j] = toConcatenate[i][j];
-        }
-    }
-    
-    return concatenated;
-   
-}
-
-//This flips the sign of all non zero array elements
-double** negateMat(double** intialMatrix,int rows,int columns){
-    double** negation = gen2DArray(rows, columns);
-
-    for(int i = 0;i<rows;i++){
-        for(int j = 0;j<columns;j++){
-            //I'm afraid of signed 0 
-            if( -1*intialMatrix[i][j] != 0){
-                negation[i][j]  = -1*intialMatrix[i][j];
-            }
-        }
-    }
-    return negation; 
-}
-
-double** transpose(double** intialMatrix,int row,int col){
-    double** transpose = gen2DArray(col, row);
-
-    for(int i = 0;i<row;i++){
-        for(int j = 0;j<col;j++){
-            //I'm afraid of signed 0 
-           
-                transpose[j][i]  = -1*intialMatrix[i][j];
-           
-        }
-    }
-    return transpose; 
-
-}
-
-double** createidentity(int size){
-
-    double** identity = gen2DArray(size,size);
-
-    for(int i = 0;i<size;i++){
-        identity[i][i] = 1;
-    }
-    return identity; 
-
-}
-
-double** iCoefficients(double numsArr[],char labels[],int rows){
-
-    double** icoeff = gen2DArray(rows,rows);
-    
-    for(int i = 0; i<rows;i++){
-        if(labels[i] == 'R'){
-            icoeff[i][i] = -1*numsArr[3*i+2];
-        }
-    }
-    return icoeff;
-
-}
-
-double** createSparce(double** incident,double** currentCoef,int nodes,int rows,double** equalsCol){
-  
-    double** leftTop = gen2DArray(nodes,nodes);
-    double** leftMiddle = negateMat(transpose(incident,nodes,rows),rows,nodes);
-    double** Leftbottom = gen2DArray(rows,nodes);  
-    double** middletop = gen2DArray(nodes,rows);
-    double** center = createidentity(rows);
-    double** middleBottom = createidentity(rows);
-
-    //Right top is just the incident maxtrix
-
-    double** rightMiddle  = gen2DArray(rows,rows);
-    
-
-    //This creates 3 rows in the large sparce matrix
-    /*
-    [0    ,0   ,A]
-    [-A^T ,1   ,0]
-    [0    ,M   ,N]
-    */
-
-    //[0    ,0   ,A]
-    double** row1step1 = concatenateCol(leftTop,nodes,nodes,middletop,rows);
-    double** row1 = concatenateCol(row1step1,nodes,nodes+rows,incident,rows);
-    //[-A^T ,1   ,0]
-    double** row2step1 = concatenateCol(leftMiddle,rows,nodes,center,rows);
-    double** row2 = concatenateCol(row2step1,rows,nodes+rows,rightMiddle,rows);
-    //[0    ,M   ,N]
-    double** row3step1 = concatenateCol(Leftbottom,rows,nodes,center,rows);
-    double** row3 = concatenateCol(row3step1,rows,nodes+rows,currentCoef,rows);
-
-    /*
-    [0    ,0   ,A]
-    [-A^T ,1   ,0]
-    */
-    double** row1and2 = concatenateRow(row1,nodes,nodes+rows*2,row2,rows);
-    
-    /*
-    [0    ,0   ,A]
-    [-A^T ,1   ,0]
-    [0    ,M   ,N]
-    */
-    double** row123 = concatenateRow(row1and2,nodes+rows,nodes+rows*2,row3,rows);
-
-    double** sparce = concatenateCol(row123,nodes+rows*2,nodes+rows*2,equalsCol,1); 
-
-
-    //Take out the trash: this is in here so it can be collapsed
-    do{ 
-        for (int i = 0; i < nodes; i++) {
-            delete[] leftTop[i];
-            delete[] middletop[i];
-            delete[] incident[i];
-        }
-        for (int i = 0; i < rows; i++) {
-            delete[] Leftbottom[i];
-            delete[] center[i];
-            delete[] middleBottom[i];
-            delete[] leftMiddle[i];
-            delete[] currentCoef[i];
-            delete[] rightMiddle[i];
-        }
-        delete[] Leftbottom;
-        delete[] center;
-        delete[] middleBottom;
-        delete[] leftMiddle;
-        delete[] currentCoef;
-        delete[] rightMiddle;
-        delete[] leftTop;
-        delete[] middletop;
-        delete[] incident;
-    }while(false);
-
-    return sparce; 
-}
-
-//This converts the matrix to the CSC form which we will use if we want to do the extra credit
-//I passed the element count by reference to "cleverly" return 2 variables without tuples
-double** sparceToCSC(double** sparce,int row,int col,int &countElmt){
-
-    //Count the non 0 elements in the sparce matrix
-    for(int i = 0;i<row;i++){
-        for(int j = 0;j<col;j++){
-            if(sparce[i][j] != 0){
-                countElmt++;
-            }
-        }
-    }
-
-    //Generate destination array for the CSC
-    double** CSC = gen2DArray(3,countElmt);
-    
-    
-    //Traverse the sparce and copy elements that are non-zere
-    int CSCPoint = 0;
-    for(int i = 0;i<row;i++){
-        for(int j = 0;j<col;j++){
-            if(sparce[i][j] != 0){
-                //column
-                CSC[0][CSCPoint] = i;
-                //row
-                CSC[1][CSCPoint] = j;
-                //Value and increment dest column pointer
-                CSC[2][CSCPoint++] = sparce[i][j];
-            }
-        }
-    }
-    return CSC;
-}
-
-//This creates the column with the element voltages, the curretns and the voltage source values
-double** createEqualsColumn(char labels[],double numsArr[],int rows,int nodes){
-
-    double** equalsColumn = gen2DArray(rows*2+nodes,1);
-
-    for(int i = 0;i<rows;i++){
-        if(labels[i] == 'V'){
-            equalsColumn[i+rows+nodes][0] = numsArr[i*3+2];
-        }
-    }
-    return equalsColumn;
-}
-
-double** solveCSC(double** CSC,int col,int row, int &countElmt,double** swapTracker){
-
-    //Check
-    int countRow = 0;
-
-    //Ignore for now
-    for(int sweepCol = 0;sweepCol<row;sweepCol++){
-        //look through each row
-        bool gotDiag =false;
-
-        for(int sweepRow = countRow; sweepRow<countElmt;sweepRow++){
-            if(CSC[sweepRow][sweepCol] != 0){
-                
-                for(int i = countRow;i<row;i++){
-                    if(CSC[sweepRow][i] != 0){
-                        swapRow(CSC,sweepRow,i,countElmt,swapTracker);
-                    }
-                    //go here if subsequent non zero elements are found in the current column
-                    else if(CSC[sweepRow][i] != 0){
-
-                    }
-                }
-                //Then you go and multiply the rows to perform the elimination, ignore the control logic
-            }
-        }
-    }
-
-    return CSC;
-}
-
-//Takes the rows to swap and the CSC matrix also the column count of the CSC
-void swapRow(double** CSC,int row1index,int row2index,int cols,double** swapTracker){
-        //This swaps the rows of the CSC
-        for(int i = 0; i<cols;i++){
-            //Check if rows match the desired values
-            if(CSC[0][i] == row1index){
-                CSC[0][i] = row2index;
-            }
-            else if(CSC[0][i] == row2index){
-                CSC[0][i] = row1index;
-            }
-        }
-
-        //Update the swap tracker
-        swapTracker[row1index][0] = row2index; 
-        swapTracker[row2index][0] = row1index; 
-
-        //Re-sort the the swapped columns to preserve order 
-        sortCSC(CSC,cols);
-
-       
-    return;
-}
-
-//Using bubble sort to make it easier
-void sortCSC(double** CSC,int cols){
-
-    double tempRow;
-    double tempCol;
-    double tempVal;
-    //Loop that decrements the "maximum element" which is sorted
-    for(int i = 0;i<cols-1;i++){
-        //Bubble through the loop once
-        for(int j = 0;j<cols-1-i;j++){
-            //Swap values if needed
-            if(CSC[0][j] > CSC[0][j+1]){
-                tempRow = CSC[0][j]; 
-                tempCol = CSC[1][j];
-                tempVal = CSC[2][j];
-
-                CSC[0][j] = CSC[0][j+1];
-                CSC[1][j] = CSC[1][j+1];
-                CSC[2][j] = CSC[2][j+1];
-
-                CSC[0][j+1] = tempRow;
-                CSC[1][j+1] = tempCol;
-                CSC[2][j+1] = tempVal; 
-            }
-        }
-    }
-    return;
-}
-
-//Needs a sorted array
-//This takes the row you want to eliminate and the row you want to keep and eliminates a value in the correct column
-//Pass by reference because you might have to add rows when you do the addition/subtraction 
-void eliminateRow(double** CSC,int topRowIndex,int lowRowIndex,int operationCol,int &cols){
-
-    double diagElement = 0; 
-
-    //out<<"Diag El"<<diagElement;
-    //Find the top left element to use
-    for(int i = 0;i<cols;i++){
-        if(CSC[0][i] == topRowIndex && CSC[1][i] == operationCol){
-            diagElement = CSC[2][i];
-        }
-    }
-
-    double multiplicand = 0; 
-    //Find the element to eliminate 
-    for(int i = 0;i<cols;i++){
-        if( CSC[0][i] == lowRowIndex && CSC[1][i] == operationCol){
-            multiplicand = CSC[2][i]/diagElement;
-        }
-    }
-
-    int countCorrectRow = 0;
-    //count the elements with the initial row index
-    for(int i = 0;i<cols;i++){
-        if(CSC[0][i] == topRowIndex){
-            countCorrectRow++; 
-        }
-        if(CSC[0][i] != topRowIndex && countCorrectRow != 0){
-            break; 
-        }
-    }
-    
-    double** copyFixedRow = gen2DArray(3,countCorrectRow);
-    
-    //generate array for the row that is being operated on 
-    int countOperRow = 0;
-    for(int i = 0;i<cols;i++){
-        if(CSC[0][i] == lowRowIndex){
-            countOperRow++; 
-        }
-        if(CSC[0][i] != lowRowIndex && countOperRow != 0){
-            break; 
-        }
-    }
-    
-    double** copyOperRow = gen2DArray(3,countOperRow);
-
-    //Extract the initial row times by the multiplicand and -1 to prepare of addition 
-    int copyPointerFixed =  0;
-    int copyPointerOper =  0;
-
-    for(int i = 0;i<cols;i++){
-        if((int)CSC[0][i] == topRowIndex){
-            copyFixedRow[0][copyPointerFixed] = CSC[0][i];
-            copyFixedRow[1][copyPointerFixed] = CSC[1][i];
-            copyFixedRow[2][copyPointerFixed] = -multiplicand*CSC[2][i];
-            copyPointerFixed++; 
-        }
-        //Extract the row to operate on
-        if((int)CSC[0][i] == lowRowIndex){
-            copyOperRow[0][copyPointerOper] = CSC[0][i];
-            copyOperRow[1][copyPointerOper] = CSC[1][i];
-            copyOperRow[2][copyPointerOper] = CSC[2][i];
-            copyPointerOper++; 
-        }   
-    }
-  
-    //Now add the 2 matricies using sum as limit for robustness
-    double** storeUnique = gen2DArray(3,1);
-    int dstPointer = 0; 
-    int counter = 0;
-    for(int i = 0; i<countCorrectRow;i++){
-        //Eliminate a row if possible or add elements with same value
-        if(copyFixedRow[1][i] == copyOperRow[1][dstPointer]){
-            copyOperRow[2][dstPointer++] = copyFixedRow[2][i]+copyOperRow[2][dstPointer];
-            counter++;
-            cout<<"counter:"<<counter<<endl;
-        }
-        else{
-            
-            storeUnique[0][0] = lowRowIndex;
-            storeUnique[1][0] = copyFixedRow[1][i];
-            storeUnique[2][0] = copyFixedRow[2][i];
-
-            cout<<cols<<endl;
-
-            double** CSC2 = concatenateCol(CSC,3,cols,storeUnique,1);
-
-            for(int i = 0; i<countCorrectRow;i++){
-                //Eliminate a row if possible or add elements with same value
-                if(copyFixedRow[1][i] == copyOperRow[1][dstPointer]){
-                    cout<<copyFixedRow[2][i]+copyOperRow[2][dstPointer]<<endl;
-                    copyOperRow[2][dstPointer++] = copyFixedRow[2][i]+copyOperRow[2][dstPointer];
-                    counter++;
-                    cout<<"counter:"<<counter<<endl;
-                }
-                else{
-                    
-                    storeUnique[0][0] = lowRowIndex;
-                    storeUnique[1][0] = copyFixedRow[1][i];
-                    storeUnique[2][0] = copyFixedRow[2][i];
-
-                    cout<<cols<<endl;
-
-                    double** CSC2 = concatenateCol(CSC,3,cols,storeUnique,1);
-
-                    //This block is to deal with the concatenate col creating a new array
-                    cols++;
-
-                }   
-            }   
-        }
-    
-    } 
-    for(int i = 0;i<countOperRow;i++){
-        for(int j = 0;j<cols;j++){
-            //Check if row and col value match if so overwrite the values
-            if(copyOperRow[0][i] == CSC[0][j] && copyOperRow[1][i] == CSC[1][j]){
-                CSC[2][i] = copyOperRow[2][j];
-            }
-        }
-    }
-
-
-    return;
-}
-
-//Takes a sorted array and deletes the zeros from the front 
-void deleteCSCzeros(double** CSC,int &col){
-    for(int i = 0;i<col-1;i++){
-        for(int j = 0;j<col-1;j++){
-            //This acts as a break 
-            if(CSC[2][i] != 0){
-                j = col;
-            }
-            //left shift everything
-            else{
-                CSC[0][j] = CSC[0][j+1];
-                CSC[1][j] = CSC[1][j+1];
-                CSC[2][j] = CSC[2][j+1];
-                col--;
-            }
-        }
-    }
+vector<vector<char>> create2dVecChar(int row, int col){
+    vector<vector<char>> v  = vector<vector<char>>(row, vector<char>(col,'0'));
+    return v;
 }

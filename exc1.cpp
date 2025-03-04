@@ -311,7 +311,7 @@ void eliminateRowDown(vector<vector<double>> &CSC,int topRowIndex,int lowRowInde
         }
         //Incremnet the row copying
         if((int)CSC[0][i] == topRowIndex) countCorrectRow++;
-        else if((int)CSC[0][i] == lowRowIndex) countOperRow++; 
+        if((int)CSC[0][i] == lowRowIndex) countOperRow++; 
     }
     
     vector<vector<double>> copyFixedRow = create2dVec(3,countCorrectRow);
@@ -336,25 +336,46 @@ void eliminateRowDown(vector<vector<double>> &CSC,int topRowIndex,int lowRowInde
             copyPointerOper++; 
         }   
     }
+
+    for(int i = 0;i<3;i++){
+        for(int j = 0;j<copyFixedRow[0].size();j++){
+            cout<<setw(10)<<copyFixedRow[i][j];
+        }
+        cout<<endl;
+    }
+    cout<<endl;
+    for(int i = 0;i<3;i++){
+        for(int j = 0;j<copyOperRow[0].size();j++){
+            cout<<setw(10)<<copyOperRow[i][j];
+        }
+        cout<<endl;
+    }
   
     //Now add the 2 matricies using sum as limit for robustness
     int dstPointer = 0; 
-  
-    for(int i = 0; i<countCorrectRow;i++){
-        
-        //Eliminate a row if possible or add elements with same row and col values
-        if(copyFixedRow[1][i] == copyOperRow[1][dstPointer]){
-            copyOperRow[2][dstPointer] = copyFixedRow[2][i]+copyOperRow[2][dstPointer];
-            dstPointer++;
-        }
-        else{
-            vector<vector<double>> storeUnique = create2dVec(3,1);
 
+    for(int i = 0; i<copyFixedRow[0].size();i++){
+        bool notUnique = false;
+        for(int j = 0; j<copyOperRow[0].size();j++){
+            //Eliminate a row if possible or add elements with same row and col values
+            if((int)copyFixedRow[1][i] == (int)copyOperRow[1][j]){
+                cout<<"The control for the copying is at: "<<i<<endl;
+                cout<<"the fixed column is: "<<copyFixedRow[1][i]<<" and the copy col is: "<<copyOperRow[1][j]<<endl;
+                copyOperRow[2][j] = copyFixedRow[2][i]+copyOperRow[2][j];
+                //dstPointer++;
+                notUnique = true;
+            }
+        }
+        if(!notUnique){
+            vector<vector<double>> storeUnique = create2dVec(3,1);
             storeUnique[0][0] = lowRowIndex;
             storeUnique[1][0] = copyFixedRow[1][i];
             storeUnique[2][0] = copyFixedRow[2][i];
             CSC = concatenateCol(CSC,storeUnique);
+            //dstPointer++;
+            sortCSC(CSC);
         }
+        
     }
 
     //scan through the copied row and copy similar elements into the the CSC 
@@ -366,12 +387,16 @@ void eliminateRowDown(vector<vector<double>> &CSC,int topRowIndex,int lowRowInde
             }
         }
     }
+    
     sortCSC(CSC);
+
+    
+
     return;
 }
 
 //This takes a sorted CSC matrix
-void solveCSC(vector<vector<double>> &CSC){
+void solveCSC(vector<vector<double>> &CSC ){
 
     //Find the max row and column values
     int maxRow = 0;
@@ -385,9 +410,43 @@ void solveCSC(vector<vector<double>> &CSC){
     //This does Row echelon form and solves down 
     //Create the row echelon matrix by looking down each col (metaphorically)
     for(int sweepCol = 0;sweepCol<maxCol-1;sweepCol++){
-        cout<<maxCol<<endl;
+        cout<<"maxCol is: "<<maxCol<<endl;
         cout<<"Sweep col is"<<sweepCol<<endl;
         bool found1st = false;
+
+        cout<<maxCol<<endl<<endl;
+
+        //printing
+        for(int i = 0; i<maxRow+1;i++){
+            if(i<10){
+                cout<<"row: "<<i<<"  ";
+            }
+            else{
+                cout<<"row:"<<i<<"  ";
+            }
+
+            for(int j = 0;j<maxCol+1;j++){
+                bool found = false;
+                for(int k = 0;k<CSC[0].size();k++){
+                    if(CSC[0][k] == i && CSC[1][k] == j){
+                        cout<<setw(10)<<CSC[2][k];
+                        found = true;
+                    }
+                }
+                if(found == false){
+                    cout<<setw(10)<<"0";
+                }
+            }
+            cout<<endl;
+        }
+        cout<<"hfefefkelfef"<<endl;
+        for(int i = 0; i<3;i++){
+            for(int j = 0;j<CSC[0].size();j++){
+                cout<<setw(7)<<CSC[i][j];
+            }
+        cout<<endl;
+        }
+
         //find the first column index in each row
         for(int i = 0;i<CSC[0].size();i++){
         
@@ -399,25 +458,106 @@ void solveCSC(vector<vector<double>> &CSC){
             }
             //swap once you find the first element in the column swap 
             else if ((int)CSC[1][i] == sweepCol && found1st == false){
-                swapRow(CSC,sweepCol,(int)CSC[0][i]);
-                found1st = true;
+                swapRow(CSC,sweepCol,(int)CSC[0][i]);                found1st = true;
             }
             else if ((int)CSC[1][i] == sweepCol && found1st == true){
-                cout<<"i is"<<i<<endl;
+                cout<<"eliminate stuff"<<endl;
                 eliminateRowDown(CSC,sweepCol,(int)CSC[0][i],sweepCol);
-            }
-            else if(CSC[0][i] > maxRow){
-                break;
-            }
-            cout<<CSC[0].size();
+
+                        //printing
+                for(int i = 0; i<maxRow+1;i++){
+                    if(i<10){
+                        cout<<"row: "<<i<<"  ";
+                    }
+                    else{
+                        cout<<"row:"<<i<<"  ";
+                    }
+
+                    for(int j = 0;j<maxCol+1;j++){
+                        bool found = false;
+                        for(int k = 0;k<CSC[0].size();k++){
+                            if(CSC[0][k] == i && CSC[1][k] == j){
+                                cout<<setw(10)<<CSC[2][k];
+                                found = true;
+                            }
+                        }
+                        if(found == false){
+                            cout<<setw(10)<<"0";
+                        }
+                    }
+                    cout<<endl;
+                }
+                sortCSC(CSC);
+            } 
         }   
-        cout<<"hfefefkelfef"<<endl;
-        for(int i = 0; i<3;i++){
-            for(int j = 0;j<CSC[0].size();j++){
-                cout<<setw(4)<<CSC[i][j];
+        
+    }
+    
+
+    for(int i = 0; i<maxRow+1;i++){
+        if(i<10){
+            cout<<"row: "<<i<<"  ";
+        }
+        else{
+            cout<<"row:"<<i<<"  ";
+        }
+
+        for(int j = 0;j<maxCol+1;j++){
+            bool found = false;
+            for(int k = 0;k<CSC[0].size();k++){
+                if(CSC[0][k] == i && CSC[1][k] == j){
+                    cout<<setw(10)<<CSC[2][k];
+                    found = true;
+                }
+            }
+            if(found == false){
+                cout<<setw(10)<<"0";
+            }
         }
         cout<<endl;
     }
+
+
+    cout<<"hfefefkelfef"<<endl;
+    for(int i = 0; i<3;i++){
+        for(int j = 0;j<CSC[0].size();j++){
+            cout<<setw(4)<<CSC[i][j];
+        }
+        cout<<endl;
+    }
+
+  
+    for(int i = 0;i<CSC[0].size();i++){
+        if(abs(CSC[2][i])< 0.000001 ){
+            CSC[2][i] = 0;
+        }
+    }
+    cout<<"are we here"<<endl;
+
+    sortCSC(CSC);
+
+    for(int i = 0; i<maxRow+1;i++){
+        if(i<10){
+            cout<<"row: "<<i<<"  ";
+        }
+        else{
+            cout<<"row:"<<i<<"  ";
+        }
+
+        for(int j = 0;j<maxCol+1;j++){
+            bool found = false;
+            for(int k = 0;k<CSC[0].size();k++){
+                if(CSC[0][k] == i && CSC[1][k] == j){
+                    cout<<setw(10)<<CSC[2][k];
+                    found = true;
+                }
+            }
+            if(found == false){
+                cout<<setw(10)<<"0";
+            }
+        }
+        cout<<endl;
+    
     }
 
     cout<<"hfefefkelfef"<<endl;
@@ -428,6 +568,7 @@ void solveCSC(vector<vector<double>> &CSC){
         cout<<endl;
     }
 
+    
     double rowFactor = 0;
     double row = 0; 
     //now do reduced row, divide the diagonals and get rref
@@ -450,7 +591,7 @@ void solveCSC(vector<vector<double>> &CSC){
     vector<vector<double>> storeUnique = create2dVec(3,1);
 
     //Iterate through all of the rows to solve
-    for(int i = maxRow;i>=0;i--){
+    for(int i = maxRow;i >= 0;i--){
         //scan until you hit the right row value 
         for(int cscPointer = CSC[0].size()-1;cscPointer >= 0;cscPointer--){
             if( (int)CSC[0][cscPointer] == i){
@@ -665,13 +806,20 @@ int main(){
         return 0;
     }
     
-
     //create the nessesary matricies
     vector<vector<double>> incidentMatrix = createIncidence(nodesCountArr,nodesCnt,countRow);
     vector<vector<double>> iCoef = iCoefficients(numsArr,elementLabels,countRow);
     vector<vector<double>> eqCol = createEqualsColumn(elementLabels,numsArr,countRow,nodesCnt);
     vector<vector<double>> CSC = sparceToCSC(createSparce(incidentMatrix,iCoef,eqCol,nodesCnt,countRow));
     
+    cout<<"hfefefkelfef"<<endl;
+    for(int i = 0; i<3;i++){
+        for(int j = 0;j<CSC[0].size();j++){
+            cout<<setw(4)<<CSC[i][j];
+        }
+        cout<<endl;
+    }
+
     //This works
     solveCSC(CSC);
 
