@@ -25,13 +25,16 @@ string extractResultString(vector<vector<double>> CSC){
         string tempString;
         int prc = 3;
         //Extract the result values ignore rref 1s
-        if( (int)CSC[0][i] != (int)CSC[1][i]){    
-            temp << fixed<<setprecision(prc)<<CSC[2][i];
+        if( (int)CSC[0][i] != (int)CSC[1][i]){
+
+            //Returns the rounded number from the array
+            //Multiplying the value by a factor ensures the proper number of decimal places
+            temp << fixed<<setprecision(prc)<<((int)round((CSC[2][i]*pow(10, prc)))/pow(10, prc));
            
             tempString = temp.str();
             //Now search through temp and strip back decimals for pretty outputs
             while(tempString[tempString.length()-1] == '0' && prc >= 0){
-                temp << fixed<<setprecision(prc)<<CSC[2][i];
+                temp << fixed<<setprecision(prc)<<((int)round((CSC[2][i]*pow(10, prc)))/pow(10, prc));
                 tempString.erase();
                 tempString = temp.str();
                 temp.str("");
@@ -192,6 +195,8 @@ vector<vector<double>> sparceToCSC(vector<vector<double>> sparce) {
     
     return CSC;
 }
+
+//34
 
 //This creates the sparce matrix which will be shrunk down to CSC form
 vector<vector<double>> createSparce(vector<vector<double>> incident,vector<vector<double>> currentCoef,vector<vector<double>> eqCol,int nodes,int rows){
@@ -405,42 +410,10 @@ void solveCSC(vector<vector<double>> &CSC ){
     //This does Row echelon form and solves down 
     //Create the row echelon matrix by looking down each col (metaphorically)
     for(int sweepCol = 0;sweepCol<maxCol-1;sweepCol++){
-        //cout<<"maxCol is: "<<maxCol<<endl;
         cout<<"Sweep col is"<<sweepCol<<endl;
         bool found1st = false;
 
         cout<<maxCol<<endl<<endl;
-
-        //printing
-        // for(int i = 0; i<maxRow+1;i++){
-        //     if(i<10){
-        //         cout<<"row: "<<i<<"  ";
-        //     }
-        //     else{
-        //         cout<<"row:"<<i<<"  ";
-        //     }
-
-        //     for(int j = 0;j<maxCol+1;j++){
-        //         bool found = false;
-        //         for(int k = 0;k<CSC[0].size();k++){
-        //             if(CSC[0][k] == i && CSC[1][k] == j){
-        //                 cout<<setw(10)<<CSC[2][k];
-        //                 found = true;
-        //             }
-        //         }
-        //         if(found == false){
-        //             cout<<setw(10)<<"0";
-        //         }
-        //     }
-        //     cout<<endl;
-        // }
-        // cout<<"hfefefkelfef"<<endl;
-        // for(int i = 0; i<3;i++){
-        //     for(int j = 0;j<CSC[0].size();j++){
-        //         cout<<setw(7)<<CSC[i][j];
-        //     }
-        // cout<<endl;
-        // }
 
         //find the first column index in each row
         for(int i = 0;i<CSC[0].size();i++){
@@ -457,62 +430,12 @@ void solveCSC(vector<vector<double>> &CSC ){
             }
             else if ((int)CSC[1][i] == sweepCol && found1st == true){
                 eliminateRowDown(CSC,sweepCol,(int)CSC[0][i],sweepCol);
-
-                        //printing
-                    // for(int i = 0; i<maxRow+1;i++){
-                    //     if(i<10){
-                    //         cout<<"row: "<<i<<"  ";
-                    //     }
-                    //     else{
-                    //         cout<<"row:"<<i<<"  ";
-                    //     }
-
-                    //     for(int j = 0;j<maxCol+1;j++){
-                    //         bool found = false;
-                    //         for(int k = 0;k<CSC[0].size();k++){
-                    //             if(CSC[0][k] == i && CSC[1][k] == j){
-                    //                 cout<<setw(10)<<CSC[2][k];
-                    //                 found = true;
-                    //             }
-                    //         }
-                    //         if(found == false){
-                    //             cout<<setw(10)<<"0";
-                    //         }
-                    //     }
-                    //     cout<<endl;
-                    // }
                 sortCSC(CSC);
             } 
         }   
         
     }
-    
-
-    // for(int i = 0; i<maxRow+1;i++){
-    //     if(i<10){
-    //         cout<<"row: "<<i<<"  ";
-    //     }
-    //     else{
-    //         cout<<"row:"<<i<<"  ";
-    //     }
-
-    //     for(int j = 0;j<maxCol+1;j++){
-    //         bool found = false;
-    //         for(int k = 0;k<CSC[0].size();k++){
-    //             if(CSC[0][k] == i && CSC[1][k] == j){
-    //                 cout<<setw(10)<<CSC[2][k];
-    //                 found = true;
-    //             }
-    //         }
-    //         if(found == false){
-    //             cout<<setw(10)<<"0";
-    //         }
-    //     }
-    //     cout<<endl;
-    // }
-
-
-  
+      
     for(int i = 0;i<CSC[0].size();i++){
         if(abs(CSC[2][i])< 0.000001 ){
             CSC[2][i] = 0;
@@ -520,40 +443,7 @@ void solveCSC(vector<vector<double>> &CSC ){
     }
 
     sortCSC(CSC);
-
-    // for(int i = 0; i<maxRow+1;i++){
-    //     if(i<10){
-    //         cout<<"row: "<<i<<"  ";
-    //     }
-    //     else{
-    //         cout<<"row:"<<i<<"  ";
-    //     }
-
-    //     for(int j = 0;j<maxCol+1;j++){
-    //         bool found = false;
-    //         for(int k = 0;k<CSC[0].size();k++){
-    //             if(CSC[0][k] == i && CSC[1][k] == j){
-    //                 cout<<setw(10)<<CSC[2][k];
-    //                 found = true;
-    //             }
-    //         }
-    //         if(found == false){
-    //             cout<<setw(10)<<"0";
-    //         }
-    //     }
-    //     cout<<endl;
-    
-    // }
-
-    // cout<<"hfefefkelfef"<<endl;
-    // for(int i = 0; i<3;i++){
-    //     for(int j = 0;j<CSC[0].size();j++){
-    //         cout<<setw(4)<<CSC[i][j];
-    //     }
-    //     cout<<endl;
-    // }
-
-    
+        
     double rowFactor = 0;
     double row = 0; 
     //now do reduced row, divide the diagonals and get rref
@@ -751,6 +641,11 @@ int countRows(string line){
 
 int main(){
 
+    //REMOVE BEFORE FINAL SUBMIT
+
+    // outText("7 2.625 0 0 7 4.375 2.625 0 0 0 -0.438 0.438 0.438 0 0 0");
+    // return 1;
+
     //get the string form the file 
     string line = getText();
     //Count the number of rows
@@ -873,6 +768,7 @@ int main(){
         
     string result = extractResultString(CSC);
     outText(result);
+
    
     cout<<result<<endl;
     return 0;

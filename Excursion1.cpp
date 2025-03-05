@@ -63,10 +63,10 @@ string extractResultString(vector<vector<double>> CSC);
 int main(){
 
     //get the string form the file 
-    string line = getText("netlist.txt");
+    // string line = getText("netlist.txt");
 
     //Used to easily chage between testing and full program
-    // string line = getText("test1.txt");   
+    string line = getText("test1.txt");   
 
     //Count the number of rows
     int countRow = countRows(line);
@@ -81,8 +81,10 @@ int main(){
 
     int i = 0; 
 
+    cout << "Printing the input line" << endl << line << endl;
+
     while(i<line.length()){
-        string temp; 
+        string temp;
         
         if(isalpha(line[i])){
             //Copy the letter either V or R
@@ -97,7 +99,8 @@ int main(){
             //Get the element labels v1,r1,r2 etc
             while ((isdigit(line[i])||ispunct(line[i])) &&  i<line.length()){
                 temp += line[i++];
-                
+                cout << "Inside digit if" << endl;
+                return 0;
             }
             elementLabels[lmtpointer++] = temp[0];
             
@@ -130,6 +133,9 @@ int main(){
         }
 
     }
+
+    cout << "Fail" << endl;
+    return 0;
 
     double* nodesCountArr = new double[countRow*2];
     
