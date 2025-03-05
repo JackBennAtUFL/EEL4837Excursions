@@ -59,10 +59,15 @@ void deleteCSCzeros(vector<vector<double>> &CSC);
 
 string extractResultString(vector<vector<double>> CSC);
 
+
 int main(){
 
     //get the string form the file 
     string line = getText("netlist.txt");
+
+    //Used to easily chage between testing and full program
+    // string line = getText("test1.txt");   
+
     //Count the number of rows
     int countRow = countRows(line);
     //Create a netlist with an order
@@ -309,8 +314,8 @@ vector<vector<double>> createEqualsColumn(char labels[],double numsArr[],int row
 //Creates the in cident matrix 
 vector<vector<double>> createIncidence(double nodesCountArr[],int &nodes,int branches){
     
-    vector<vector<double>> incidentMatrix = create2dVec(nodes - 1,branches);
-    
+    vector<vector<double>> incidentMatrix = create2dVec(nodes,branches);
+
     //Create the incident matrix
     for(int i = 0;i<branches*2;i++){
         if(nodesCountArr[i] == 0){
@@ -757,15 +762,16 @@ void deleteCSCzeros(vector<vector<double>> &CSC){
 
 //Matrix tools
 vector<vector<double>> transpose(vector<vector<double>> intialMatrix,int row,int col){
-    vector<vector<double>> transpose = create2dVec(col, row);
+    vector<vector<double>> transposed = create2dVec(col, row);
 
     for(int i = 0;i<row;i++){
         for(int j = 0;j<col;j++){
             //I'm afraid of signed 0 
-                transpose[j][i]  = 1*intialMatrix[i][j];      
+                cout << "i: " << i << " j: " << j << endl;
+                transposed[j][i]  = 1*(intialMatrix[i][j]);      
         }
     }
-    return transpose; 
+    return transposed; 
 
 }
 
@@ -837,7 +843,7 @@ int deduplicate(double nums[], int n ){
               
             }
             if(tempDupCount == 0 || dplctCnt == 0){
-                throw invalid_argument("Bad circuit, no open circuits are allowed");
+                //throw invalid_argument("Bad circuit, no open circuits are allowed");
                 return -1;
             }
         }
@@ -908,3 +914,49 @@ vector<vector<char>> create2dVecChar(int row, int col){
     vector<vector<char>> v  = vector<vector<char>>(row, vector<char>(col,'0'));
     return v;
 }
+
+
+
+//Josh dev space
+//-----***-----
+
+// //New functions to organize the node values
+// struct component {
+
+//     bool isV = false;
+//     bool isR = false;
+//     int nodep;
+//     int noden;
+//     double val;
+
+// };
+
+// //Takes the incoming netlist file and returns a pointer to the first item within the array containing all of the input values
+// //Remember to delete the array at the end of the program
+// component* spliceInput(string inStr, int nodeCount){
+
+//     //Generates an array to store the components
+//     component* comps = new component[nodeCount];
+
+//     int i = 0;
+
+//     int compNum = 0;
+
+//     //Sweep across the whole input string
+//     while(i < inStr.length()){
+
+//         //If the value is the delimiter (,) it will change to the next component in the array
+//         if(inStr[i] == ','){\
+//             compNum++;
+//         }
+//         else if(true){
+//             return NULL;
+//         }
+
+
+//         i++;
+//     }
+    
+
+//     return comps;
+// )
