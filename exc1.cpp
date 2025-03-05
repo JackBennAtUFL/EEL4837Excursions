@@ -108,7 +108,6 @@ vector<vector<double>> transpose(vector<vector<double>> intialMatrix,int row,int
     return transpose; 
 }
 
-
 //Scan through the list of elements and extract the resistors
 vector<vector<double>> iCoefficients(double numsArr[],char labels[],int rows){
     vector<vector<double>> icoeff = create2dVec(rows,rows);
@@ -116,6 +115,7 @@ vector<vector<double>> iCoefficients(double numsArr[],char labels[],int rows){
     //Only copy a coeffcient if the corresponding element is a resistor, rows is the nums arr size
     for(int i = 0; i<rows;i++){
         if(labels[i] == 'R') icoeff[i][i] = -1*numsArr[3*i+2];
+        if(icoeff[i][i] > 0) return vector<vector<double>>(1, vector<double>(1, 100));
     }
     return icoeff;
 }
@@ -637,33 +637,49 @@ void solveCSC(vector<vector<double>> &CSC ){
 }
 
 //Fetch the netlist string (this works)
-string getText(){
-    //Read the string from the file 
+string getText() {
+    // Read the vector from the file
     string line;
-    string net;
+    string newLine = "";
+    vector<char> net;
     ifstream myFile;
-    string fixedNet = "";
-    myFile.open("netlist.txt",ios::in); 
-    
-    //cout<<"getting text right now"<<endl;
-    if(myFile.is_open()){
-        while(getline(myFile, line) ){
-            cout<<line<<endl;
-            net += line + " ";
+    myFile.open("netlist.txt", ios::in);
+
+    // cout << "getting text right now" << endl;
+    if (myFile.is_open()) {
+        bool carReturn = false;
+        while (getline(myFile, line)) {
+            //cout << line << endl;
+            for (char c : line) {
+                net.push_back(c);
+            }
+            net.push_back(' ');
         }
-        
+       
+        vector<char> fixedNet;
+         
         for (char c : net) {
             if (c != '\r') {
-                fixedNet += c;
+                fixedNet.push_back(c);  
             }
         }
+
+        cout<<"fixed"<<endl;
+        for(int i = 0;i<fixedNet.size();i++){
+            cout<<fixedNet[i];
+        }
+
         myFile.close();
+        
+    
+        for(int i = 0;i<fixedNet.size();i++){
+            newLine += fixedNet[i];
+        }
+
+    } else {
+        cout << "Error: Bad input file" << endl;
     }
-    else{
-        cout<<"Error: Bad input file"<<endl;
-    }  
-    cout<<endl<<fixedNet<<endl;
-    return fixedNet; 
+    return newLine;
 }
 
 //Write to the output text file
@@ -741,7 +757,18 @@ int main(){
     int countRow = countRows(line);
     //Create a netlist with an order
     
+    //cout<<"does it get here"<<countRow<<endl;
+
+
+    // if(countRow != 13){
+    //     cout<<"not testing this right now"<<endl;
+    //     outText("invalid circuit");
+    //     return 0;
+
+    // }
+
     if(countRow == 1){
+        outText("invalid circuit");
         return 0;
     }
 
@@ -750,31 +777,31 @@ int main(){
     //Create a dynamic array for the node labels and elements 
     double* numsArr = new double[countRow*3];
 
-    cout<<line<<endl;
+    cout<<endl<<line<<endl;
 
     int lmtpointer = 0;
     int valPtr = 0;
-    int i = 0; 
+    int strPtr = 0; 
 
-    while(i<line.length()){
-        string temp; 
+    cout<<" line length is: "<<line.length()<<endl;    
+
+    while(strPtr< line.length()){
+        string temp = ""; 
         
-        if(isalpha((char)line[i] == true)){
+        if(isalpha(line[strPtr])  && strPtr<line.length()){
             //Copy the letter either V or R
-            if(line[i] != 'R' && line[i] != 'V'){
+            if(line[strPtr] != 'R' && line[strPtr] != 'V'){
                 cout<<"Bad circuit, check element names for L,C, only use V,R"<<endl;
                 return 0;
             }
-            temp += line[i];
-            i++;
-           
-            outText("fdfdgfgffhgff");
-
-            return 0;
-
+            temp += line[strPtr];
+            cout<<"Line is: "<<line[strPtr]<<" and i is: "<<strPtr<<endl;
+            strPtr++;
+    
             //Skip over the net label numbers because that is now encoded in the element label order
-            while(isdigit(line[i]) && i < line.length()){
-                i++;
+            while(isdigit(line[strPtr]) && strPtr < line.length()){
+                cout<<"Line is: "<<line[strPtr]<<" and i is: "<<strPtr<<endl;
+                strPtr++;
             }
         
             //Copy the element labels
@@ -782,45 +809,31 @@ int main(){
             lmtpointer++;
         }
         //Get elements until you hit the end of the "row" 
-        else if(isdigit(line[i]) == true){  
+        else if((isdigit(line[strPtr]) || line[strPtr] == '-') && strPtr<line.length()){  
         
-            outText("fdfdgfgffhgff");
-
-            return 0;
-
-            string tempNum;
+            string tempNum = "";
         
-            while ((isdigit(line[i]) == true ||line[i] == '.') &&  i<line.length()){
-                tempNum = tempNum + line[i];
-                i++;
+            while ((isdigit(line[strPtr]) || line[strPtr] == '.' || line[strPtr] == '-') &&  strPtr<line.length()){
+                tempNum = tempNum + line[strPtr];
+                cout<<"Line is: "<<line[strPtr]<<" and i is: "<<strPtr<<endl;
+                strPtr++;
             }
             numsArr[valPtr] = atof(tempNum.c_str());
             valPtr++;
         }
         //This will just catch odd cases or ends of lines 
-        if(line[i] == ',' ){
-            i++;
-            outText("fdfdgfgffhgff");
-
-            return 0;
-        }
-        if(line[i] == ' ' ){
-            i++;
-            outText("fdfdgfgffhgff");
-
-            return 0;
-        }if(line[i] == '\r'){
-            i++;
-            outText("fdfdgfgffhgff");
-
-            return 0;
+        else if(strPtr<line.length()){
+            cout<<"Line is: "<<line[strPtr]<<" and i is: "<<strPtr<<endl;
+            strPtr++;
         }
     }
 
+
+    cout<<endl<<"check"<<endl;
+    
     //Create two arrays, one for incident and one for couting the elements in the inicdent matrix
     double* nodesCountArr = new double[countRow*2];
     double* nodesCountCopy = new double[countRow*2];
-
 
     int j = 0;
     for(int i = 0; i<countRow*3;i++){
@@ -831,13 +844,19 @@ int main(){
     }
 
     int nodesCnt = countNodes(nodesCountCopy,countRow*2);
+
     if(nodesCnt == -1){
+        outText("Invalid circuit");
         return 0;
     }
     
     //create the nessesary matricies
     vector<vector<double>> incidentMatrix = createIncidence(nodesCountArr,nodesCnt,countRow);
     vector<vector<double>> iCoef = iCoefficients(numsArr,elementLabels,countRow);
+    if(iCoef[0][0] == 100){
+        outText("Invalid circuit, no negative resistors");
+        return 0;
+    }
     vector<vector<double>> eqCol = createEqualsColumn(elementLabels,numsArr,countRow,nodesCnt);
     vector<vector<double>> CSC = sparceToCSC(createSparce(incidentMatrix,iCoef,eqCol,nodesCnt,countRow));
     
@@ -849,13 +868,9 @@ int main(){
         cout<<endl;
     }
 
-    return 0;
-
     //This works
     solveCSC(CSC);
-
-    cout<<endl<<"cound lfsdigsd prob"<<endl;
-    
+        
     string result = extractResultString(CSC);
     outText(result);
    
