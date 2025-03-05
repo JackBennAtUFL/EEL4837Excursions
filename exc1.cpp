@@ -5,6 +5,8 @@
 #include <vector>
 #include <sstream>
 #include <iomanip>
+#include <stdlib.h>
+#include <cctype>
 
 using namespace std; 
 
@@ -97,8 +99,8 @@ vector<vector<double>> negateMat(vector<vector<double>> intialMatrix,int rows,in
 vector<vector<double>> transpose(vector<vector<double>> intialMatrix,int row,int col){
     vector<vector<double>> transpose = create2dVec(col, row);
 
-    for(int i = 0;i<row;i++){
-        for(int j = 0;j<col;j++){
+    for(int i = 0;i<intialMatrix.size();i++){
+        for(int j = 0;j<intialMatrix[0].size();j++){
             //I'm afraid of signed 0 
                 transpose[j][i] = intialMatrix[i][j];      
         }
@@ -362,11 +364,12 @@ void eliminateRowDown(vector<vector<double>> &CSC,int topRowIndex,int lowRowInde
             }
         }
         if(!notUnique){
-            vector<vector<double>> storeUnique = create2dVec(3,1);
+            //vector<vector<double>> storeUnique = create2dVec(3,1);
             CSC[0].push_back(lowRowIndex);
             CSC[1].push_back(copyFixedRow[1][i]);
             CSC[2].push_back(copyFixedRow[2][i]);
             //CSC = concatenateCol(CSC,storeUnique);
+            
             //dstPointer++;
             sortCSC(CSC);
         }   
@@ -629,6 +632,7 @@ void solveCSC(vector<vector<double>> &CSC ){
             }
         }
     }
+
     return;
 }
 
@@ -638,19 +642,28 @@ string getText(){
     string line;
     string net;
     ifstream myFile;
+    string fixedNet = "";
     myFile.open("netlist.txt",ios::in); 
     
-    cout<<"getting text right now"<<endl;
+    //cout<<"getting text right now"<<endl;
     if(myFile.is_open()){
         while(getline(myFile, line) ){
+            cout<<line<<endl;
             net += line + " ";
+        }
+        
+        for (char c : net) {
+            if (c != '\r') {
+                fixedNet += c;
+            }
         }
         myFile.close();
     }
     else{
         cout<<"Error: Bad input file"<<endl;
     }  
-    return net; 
+    cout<<endl<<fixedNet<<endl;
+    return fixedNet; 
 }
 
 //Write to the output text file
@@ -728,15 +741,16 @@ int main(){
     int countRow = countRows(line);
     //Create a netlist with an order
     
-    cout<<countRow;
-
     if(countRow == 1){
         return 0;
     }
 
-    char* elementLabels = new char[countRow];    
+    char* elementLabels = new char[countRow];  
+    
     //Create a dynamic array for the node labels and elements 
     double* numsArr = new double[countRow*3];
+
+    cout<<line<<endl;
 
     int lmtpointer = 0;
     int valPtr = 0;
@@ -745,31 +759,62 @@ int main(){
     while(i<line.length()){
         string temp; 
         
-        if(isalpha(line[i])){
+        if(isalpha((char)line[i] == true)){
             //Copy the letter either V or R
             if(line[i] != 'R' && line[i] != 'V'){
                 cout<<"Bad circuit, check element names for L,C, only use V,R"<<endl;
                 return 0;
             }
-            temp += line[i++];
+            temp += line[i];
+            i++;
            
+            outText("fdfdgfgffhgff");
+
+            return 0;
+
             //Skip over the net label numbers because that is now encoded in the element label order
-            while(isdigit(line[i++]))
+            while(isdigit(line[i]) && i < line.length()){
+                i++;
+            }
         
             //Copy the element labels
-            elementLabels[lmtpointer++] = temp[0];
+            elementLabels[lmtpointer] = temp[0];
+            lmtpointer++;
         }
         //Get elements until you hit the end of the "row" 
-        else if(isdigit(line[i])){  
+        else if(isdigit(line[i]) == true){  
+        
+            outText("fdfdgfgffhgff");
+
+            return 0;
+
             string tempNum;
         
-            while ((isdigit(line[i])||line[i] == '.') &&  i<line.length()){
-                tempNum += line[i++];
+            while ((isdigit(line[i]) == true ||line[i] == '.') &&  i<line.length()){
+                tempNum = tempNum + line[i];
+                i++;
             }
-            numsArr[valPtr++] = stod(tempNum);
+            numsArr[valPtr] = atof(tempNum.c_str());
+            valPtr++;
         }
         //This will just catch odd cases or ends of lines 
-        else if((line[i] == ','||line[i] == ' ' || line[i] == '\r')) i++;
+        if(line[i] == ',' ){
+            i++;
+            outText("fdfdgfgffhgff");
+
+            return 0;
+        }
+        if(line[i] == ' ' ){
+            i++;
+            outText("fdfdgfgffhgff");
+
+            return 0;
+        }if(line[i] == '\r'){
+            i++;
+            outText("fdfdgfgffhgff");
+
+            return 0;
+        }
     }
 
     //Create two arrays, one for incident and one for couting the elements in the inicdent matrix
@@ -803,6 +848,8 @@ int main(){
         }
         cout<<endl;
     }
+
+    return 0;
 
     //This works
     solveCSC(CSC);
