@@ -10,6 +10,7 @@
         "sstream": "cpp",
         "xstring": "cpp",
         "cmath": "cpp",
-        "ios": "cpp"
+        "ios": "cpp",
+        "fstream": "cpp"
     }
 }
