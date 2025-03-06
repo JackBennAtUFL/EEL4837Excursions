@@ -5,8 +5,6 @@
 #include <vector>
 #include <sstream>
 #include <iomanip>
-#include <stdlib.h>
-#include <cctype>
 
 using namespace std; 
 
@@ -41,7 +39,6 @@ string extractResultString(vector<vector<double>> CSC){
                 prc--; 
             }
         }
-
 
         result = result + " " + tempString;
     }
@@ -92,22 +89,19 @@ vector<vector<double>> negateMat(vector<vector<double>> intialMatrix,int rows,in
     for(int i = 0;i<rows;i++){
         for(int j = 0;j<columns;j++){
             //I'm afraid of signed 0  
-            if(intialMatrix[i][j] != 0){
-                negation[i][j]  = -1*intialMatrix[i][j];
-            }
+            if(intialMatrix[i][j] != 0) negation[i][j]  = -intialMatrix[i][j];
         }
     }
     return negation; 
 }
 
-//Matrix tools
+//Matrix tools, this creates a transpose of a matrix
 vector<vector<double>> transpose(vector<vector<double>> intialMatrix,int row,int col){
     vector<vector<double>> transpose = create2dVec(col, row);
 
     for(int i = 0;i<intialMatrix.size();i++){
         for(int j = 0;j<intialMatrix[0].size();j++){
-            //I'm afraid of signed 0 
-                transpose[j][i] = intialMatrix[i][j];      
+            transpose[j][i] = intialMatrix[i][j];      
         }
     }
     return transpose; 
@@ -131,9 +125,7 @@ vector<vector<double>> createEqualsColumn(char labels[],double numsArr[],int row
     vector<vector<double>> equalsColumn =create2dVec(rows*2+nodes,1);
     //only care about the voltage values
     for(int i = 0;i<rows;i++){
-        if(labels[i] == 'V'){
-            equalsColumn[i+rows+nodes][0] = numsArr[i*3+2];
-        }
+        if(labels[i] == 'V') equalsColumn[i+rows+nodes][0] = numsArr[i*3+2];
     }
     return equalsColumn;
 }
@@ -145,13 +137,10 @@ vector<vector<double>> createIncidence(double nodesCountArr[],int &nodes,int bra
 
     //Create the incident matrix using position and traverse the nodes array
     for(int i = 0;i<branches*2;i++){
-        if(nodesCountArr[i] == 0){}
-        else if(i % 2 == 0 ){
-            incidentMatrix[(int)(nodesCountArr[i]-1)][i/2] = 1; 
-        }
-        else{
-            incidentMatrix[(int)(nodesCountArr[i]-1)][i/2] = -1; 
-        }
+        if(nodesCountArr[i] == 0);
+
+        else if(i % 2 == 0 ) incidentMatrix[(int)(nodesCountArr[i]-1)][i/2] = 1; 
+        else incidentMatrix[(int)(nodesCountArr[i]-1)][i/2] = -1; 
     } 
     return incidentMatrix;
 }
@@ -168,7 +157,6 @@ vector<vector<double>> createidentity(int size){
 
 //Convert the sparce matrix to a CSC matrix
 vector<vector<double>> sparceToCSC(vector<vector<double>> sparce) {
-
     //Generate destination array for the CSC
     vector<vector<double>> CSC = create2dVec(3,0);
     
@@ -390,21 +378,17 @@ void solveCSC(vector<vector<double>> &CSC ){
                 eliminateRowDown(CSC,sweepCol,(int)CSC[0][i],sweepCol);
                 sortCSC(CSC);
             } 
-        }   
-        
+        }      
     }
     
     //zero out division artifacts
     for(int i = 0;i<CSC[0].size();i++){
-        if(abs(CSC[2][i])< 0.000001 ){
-            CSC[2][i] = 0;
-        }
+        if(abs(CSC[2][i]) < 0.000001 ) CSC[2][i] = 0;
     }
 
     sortCSC(CSC);
-        
-    double rowFactor = 0;
-    double row = 0; 
+    
+    double rowFactor, row = 0; 
     //now do reduced row, divide the diagonals and get rref
     for(int i = 0;i<CSC[0].size();i++){
         row = CSC[0][i]; 
@@ -415,14 +399,10 @@ void solveCSC(vector<vector<double>> &CSC ){
         //divide through the row
         while(j<CSC[0].size() && (int)CSC[0][j] == row){
             i = j;
-            CSC[2][j] = CSC[2][j]/rowFactor; 
-            j++;
+            CSC[2][j++] /= rowFactor; 
         }        
     }
-
-    //next do the back substitution
-    vector<vector<double>> storeUnique = create2dVec(3,1);
-
+   
     //Iterate through all of the rows to solve
     for(int i = maxRow;i >= 0;i--){
         //scan until you hit the right row value 
@@ -432,10 +412,8 @@ void solveCSC(vector<vector<double>> &CSC ){
                 bool createRow = false;
                 if(((int)CSC[1][cscPointer] != maxCol)){
                     createRow = true;
-                    storeUnique[0][0] = i;
-                    storeUnique[1][0] = maxCol;
-                    storeUnique[2][0] = 0; 
                 }
+                
                 double tempElim = 0;
                 double val;
                 //Substitute the values needed and the 0 out the stuff in the left side of the matrix
@@ -445,32 +423,32 @@ void solveCSC(vector<vector<double>> &CSC ){
                     else
                     {
                         //search for row and column return value of the prior rows that have been solved
-                        for(int search = CSC[0].size()-1;search>= 0;search--){
+                        for(int search = CSC[0].size()-1;search >= 0;search--){
                             if(CSC[1][cscPointer] == CSC[0][search] && CSC[1][search] == maxCol){
                                 val =  CSC[2][search];
                                 break;
                             }
+                            //this else is safe because we previously rounded off the to 10^-5
+                            else val = 0.0000001; 
                         }
                         //Sum the elements of the row that we 
-                        tempElim = tempElim - CSC[2][cscPointer]*val; 
-                        CSC[2][cscPointer] = 0; 
-                        cscPointer--; 
+                        tempElim -= CSC[2][cscPointer]*val; 
+                        CSC[2][cscPointer--] = 0;  
                     }
                 }
 
                 if(createRow == true){
                     //concatenate the unique row and sort 
-                    storeUnique[2][0]  = tempElim;
-                    CSC[0].push_back(storeUnique[0][0]);
-                    CSC[1].push_back(storeUnique[1][0]);
-                    CSC[2].push_back(storeUnique[2][0]);
+                    CSC[0].push_back(i);
+                    CSC[1].push_back(maxCol);
+                    CSC[2].push_back(tempElim);
                     sortCSC(CSC);
                 }
                 else{
                     //copy the new value to the equals column 
                     for(int j = 0;j<CSC[0].size()-1;j++){
                         if(CSC[0][j] == i && CSC[1][j] == maxCol){
-                            CSC[2][j] = CSC[2][j]+tempElim;
+                            CSC[2][j] += tempElim;
                         }
                     }
                 }
@@ -485,7 +463,6 @@ void solveCSC(vector<vector<double>> &CSC ){
         CSC[1].push_back(maxCol);
         CSC[2].push_back(0);
     }
-
     return;
 }
 
@@ -498,11 +475,9 @@ string getText() {
     ifstream myFile;
     myFile.open("netlist.txt", ios::in);
 
-    // cout << "getting text right now" << endl;
     if (myFile.is_open()) {
         bool carReturn = false;
         while (getline(myFile, line)) {
-            //cout << line << endl;
             for (char c : line) {
                 net.push_back(c);
             }
@@ -512,20 +487,15 @@ string getText() {
         //pass stuff through a vector because autograder madness
         vector<char> fixedNet;
         for (char c : net) {
-            if (c != '\r') {
-                fixedNet.push_back(c);  
-            }
+            if (c != '\r')  fixedNet.push_back(c); 
         }
 
         myFile.close();
         
-        for(int i = 0;i<fixedNet.size();i++){
-            newLine += fixedNet[i];
-        }
-
-    } else {
-        cout << "Error: Bad input file" << endl;
-    }
+        for(int i = 0;i<fixedNet.size();i++) newLine += fixedNet[i];
+        
+    } else cout << "Error: Bad input file" << endl;
+    
     return newLine;
 }
 
@@ -533,13 +503,12 @@ string getText() {
 void outText(string outputStr){
     //write out the results
     ofstream myFile;
-    myFile.open("output.txt",ios::out); //read
+    myFile.open("output.txt",ios::out); 
     if(myFile.is_open()){
         myFile<<outputStr<<endl; 
         myFile.close();
     }
     else cout<<"file write failed"<<endl;
-    
     return; 
 }
 
@@ -548,9 +517,8 @@ int countNodes(double nums[], int n){
     //Sort the nums array so you can count uniques
     double temp;
 
-    //Loop that decrements the "maximum element" which is sorted
+    //This is just bubble sort
     for(int i = 0;i<n-1;i++){
-        //Bubble through the loop once
         for(int j = 0;j<n-1-i;j++){
             //Swap values if needed
             if(nums[j] < nums[j+1]){
@@ -566,16 +534,8 @@ int countNodes(double nums[], int n){
     for(int i = 0; i<n-1;i++){
         if((int)nums[i] != (int)nums[i-1]){ 
             int j = 1+i;
-            int tempDupCount = 0; 
-            while((int)nums[i] == (int)nums[j] && j<n){
+            while((int)nums[i] == (int)nums[j++] && j<n){
                 dplctCnt++; 
-                tempDupCount++; 
-                j++;
-            }
-            if(tempDupCount == 0 || dplctCnt == 0){
-                outText("bad circuit");
-                throw invalid_argument("Invalid circuit");
-                return -1;
             }
         }
     }
@@ -598,57 +558,34 @@ int main(){
     string line = getText();
     //Count the number of rows
     int countRow = countRows(line);
-    //Create a netlist with an order
-    
-    if(countRow < 2){
-        outText("invalid circuit");
-        throw invalid_argument("bad circuit, add elements");
-    }
-    
+     
     //Create a dynamic array for the node labels and elements 
     char* elementLabels = new char[countRow]; 
     double* numsArr = new double[countRow*3];
 
-    int lmtpointer = 0;
-    int valPtr = 0;
-    int strPtr = 0; 
+    int lmtpointer,valPtr, strPtr = 0;
 
-    while(strPtr< line.length()){
-        string temp = ""; 
-        
-        if(isalpha(line[strPtr])  && strPtr<line.length()){
-            //Copy the letter either V or R
-            if(line[strPtr] != 'R' && line[strPtr] != 'V'){
-                 return 0;
-            }
-            temp += line[strPtr];
-            strPtr++;
-    
+    while(strPtr<line.length()){
+        //Copy the element labels
+        if(isalpha(line[strPtr])){
+           
+            elementLabels[lmtpointer++] = line[strPtr++];
+
             //Skip over the net label numbers because that is now encoded in the element label order
-            while(isdigit(line[strPtr]) && strPtr < line.length()){
-                strPtr++;
-            }
-        
-            //Copy the element labels
-            elementLabels[lmtpointer] = temp[0];
-            lmtpointer++;
+            while(isdigit(line[strPtr++]));
         }
         //Get elements until you hit the end of the "row" 
-        else if((isdigit(line[strPtr]) || line[strPtr] == '-') && strPtr<line.length()){  
+        else if((isdigit(line[strPtr]) || line[strPtr] == '-')){  
         
             string tempNum = "";
         
-            while ((isdigit(line[strPtr]) || line[strPtr] == '.' || line[strPtr] == '-') &&  strPtr<line.length()){
-                tempNum = tempNum + line[strPtr];
-                strPtr++;
+            while ((isdigit(line[strPtr]) || line[strPtr] == '.' || line[strPtr] == '-')){
+                tempNum = tempNum + line[strPtr++];
             }
-            numsArr[valPtr] = atof(tempNum.c_str());
-            valPtr++;
+            numsArr[valPtr++] = atof(tempNum.c_str());
         }
         //This will just catch odd cases or ends of lines 
-        else if(strPtr<line.length()){
-            strPtr++;
-        }
+        else strPtr++;
     }
     
     //Create two arrays, one for incident and one for couting the elements in the inicdent matrix
@@ -657,7 +594,7 @@ int main(){
 
     int j = 0;
     for(int i = 0; i<countRow*3;i++){
-        if( (i+1) % 3 != 0){
+        if((i+1) % 3 != 0){
             nodesCountArr[j] = numsArr[i];
             nodesCountCopy[j++] = nodesCountArr[j];
         }
@@ -665,23 +602,16 @@ int main(){
 
     int nodesCnt = countNodes(nodesCountCopy,countRow*2);
 
-    if(nodesCnt == -1){
-        throw invalid_argument("bad circuit");
-        outText("Invalid circuit");
-        return 0;
-    }
-    
     //create the nessesary matricies
     vector<vector<double>> incidentMatrix = createIncidence(nodesCountArr,nodesCnt,countRow);
     vector<vector<double>> iCoef = iCoefficients(numsArr,elementLabels,countRow);
     vector<vector<double>> eqCol = createEqualsColumn(elementLabels,numsArr,countRow,nodesCnt);
     vector<vector<double>> CSC = sparceToCSC(createSparce(incidentMatrix,iCoef,eqCol,nodesCnt,countRow));
    
-    //This works
+    //solve the csc
     solveCSC(CSC);
-        
-    string result = extractResultString(CSC);
-    outText(result);
+    //output the text
+    outText(extractResultString(CSC));
 
     return 0;
 }
