@@ -563,7 +563,9 @@ int main(){
     char* elementLabels = new char[countRow]; 
     double* numsArr = new double[countRow*3];
 
-    int lmtpointer,valPtr, strPtr = 0;
+    int lmtpointer = 0;
+    int valPtr = 0;
+    int strPtr = 0;
 
     while(strPtr<line.length()){
         //Copy the element labels
