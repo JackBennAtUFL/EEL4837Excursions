@@ -75,7 +75,7 @@ void outText(string outputStr){
     return; 
 }
 
-node enTree(string line){
+node* enTree(string line){
 
     //create the head 
     int output = line.find("OUTPUT")-2;
@@ -87,6 +87,7 @@ node enTree(string line){
 
     head->net = out;
 
+    //Find the 2nd occurance of the output in the string
     bool found1st = false;
     int outGatePos = 0; 
     for(int  i = 0; i <line.size();i++){
@@ -104,10 +105,49 @@ node enTree(string line){
     string element = line.substr(outGatePos,line.size() - outGatePos); 
     cout<<outGatePos<<"element is"<<element; 
 
-    //check to see if out put is a gate or connected to one
+    //This block does the head, there are two ways you can do the head, it may
+    //equal a logic gate or it could be a variable name 
+
+    //check to see if out put is a gate or connected to one (F = t1)
     if(element.find("NOT") == string::npos && element.find("OR") == string::npos &&  element.find("AND") == string::npos){
-        head->left = new node()
+        head->function = '=';
+        string next = element.substr(4,2); 
+        head->left = new node(next);
     }
+    //go here if F = AND t2 t3 for example  
+    else{
+        if(element.find("NOT") != string::npos){
+            head->function = '!';
+        }
+        else if(element.find("AND") != string::npos){
+            head->function = '*';
+        }
+        else if(element.find("OR") != string::npos){
+            head->function = '+';
+        }
+
+        int spaceCount = 0;
+        bool foundL = false;
+        for(int i = 0;i<element.size();i++){
+            if(element[i] == ' '){
+                spaceCount +=1; 
+            }
+            if(spaceCount == 3 && !foundL){
+                foundL = true;
+                i++;
+                int point = element.find(' ', i);
+                string left = element.substr(i,point-i);
+                head -> left = new node(left);
+            }
+            if(spaceCount == 4){
+                int point = element.find(' ', i);
+                string right = element.substr(i,point-i);
+                head -> right = new node(right);
+            }
+        }
+    }    
+    //Inset code to constrtuct the tree 
+
 
     return head; 
 }
@@ -120,7 +160,7 @@ int main(){
 
     string line = "a INPUT b INPUT c INPUT d INPUT E OUTPUT t1 = AND a b t2 = AND c d E = OR t1 t2";
 
-    node head = enTree(line);
+    node *head = enTree(line);
 
     outText("12");
 
