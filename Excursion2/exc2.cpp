@@ -151,9 +151,10 @@ node* enTree(string line){
     return head; 
 }
 
-//-----***-----
+
 
 //Splits a given string by the given delimeter
+//-----***-----
 vector<string> splitString(string inStr, char del){
 
     int splitPos;
@@ -172,64 +173,131 @@ vector<string> splitString(string inStr, char del){
     return output;
 
 }
+//-----***-----
 
 
-//Generates the logic tree given the input netlist
-node genLogTree(node *head, string inpfile){
+//Returns the Net ID for the output point
+//-----***-----
+string getOutputNet(vector<vector<string>> & masterList){
 
-    string line;
-    ifstream myfile(inpfile);
+    for(int i = 0; i < masterList.size(); i++){
 
-    vector<vector<string>> inText;
+        if(masterList[i][1] == "OUTPUT"){
 
-    while(getline(myfile,line)){
-        inText.push_back(splitString(line, ' '));
+            //Removes the item from the master list and returns the netlabel
+            string outputNet = masterList[i][0];
+            masterList.erase(masterList.begin()+i);
+            return outputNet;
+        }
+
     }
 
     return NULL;
 
 }
+//-----***-----
+
+//Returns the string vector containing the node information from passing the net label
+//-----***-----
+vector<string> getNetInfo(string netName, vector<vector<string>> & masterList){
+
+    vector<string> errorVect;
+    errorVect.push_back("Not Found");
+
+    for(int i = 0; i < masterList.size(); i++){
+
+        if(masterList[i][0] == netName){
+
+            //Removes the item from the master list and returns the net info
+            vector<string> netInfo = masterList[i];
+            masterList.erase(masterList.begin() + i);
+            return netInfo;
+        }
+
+    }
+
+    return errorVect;
+
+}
+//-----***-----
 
 //Helper recursive function to generate nodes
-//Changed some things before actually doing anything with them still WIP
-node* genNode(vector<string> split, vector<string>, vector<string> right){
+//-----***-----
+node* genNode(vector<string> netData, vector<vector<string>> & masterList){
 
-    node* head;
 
-    head->net = split[0];
+    //All logic runs on the assumption of corrent data placement
+    // inputs: netlabel at [0] | "INPUT at [1]"
+    //logic: netLabel at [0] | "=" at [1] | operation at [2] | first input to op at [3] | second input to op at [4]
+
+
+    node* head = new node(netData[0]);
 
     //BASECASE
-    if(split[1] == "INPUT" ){
+    if(netData[1] == "INPUT" ){
 
         head->left = NULL;
         head->right = NULL;
-        head->function = split[0][0]; //Assigns the character input
+        head->function = netData[0][0]; //Assigns the character input
 
+        return head;
     }
-    else if(split[1] == "="){
-        if(split[1] == "AND"){
+    else if(netData[1] == "="){
+        if(netData[2] == "NOT"){
+            head->function = '!';
+
+            //Adds the NOT node to the left branch of the tree
+            head->left = genNode(getNetInfo(netData[3], masterList), masterList);
+            head->right = NULL;
+
+            return head;
+
+        }
+        else if(netData[2] == "AND"){
             head->function = '*';
         }
-        else if(split[1] == "OR"){
-            head -> function = '+';
-        }
-        else if(split[1] == "NOT"){
-            head -> function = '!';
+        else if(netData[2] == "OR"){
+            head->function = '+';
         }
 
+        //Adds the first point to the left branch and the second point to the right branch
+        head->left = genNode(getNetInfo(netData[3], masterList), masterList);
+        head->right = genNode(getNetInfo(netData[4], masterList), masterList);
 
-        head -> left = genNode(split[]);
-        head -> right = genNode(split[]);
+        return head;
 
     }
 
-
-    return head;
+    return NULL;
     
 
+}
+//-----***-----
+
+//Generates the logic tree given the input file
+//-----***-----
+node* genLogicTree(string inpfile){
+
+    //Generates the master list from the input file
+    string line;
+    ifstream myfile(inpfile);
+
+    vector<vector<string>> masterList;
+
+    while(getline(myfile,line)){
+        masterList.push_back(splitString(line, ' '));
+    }
+
+    string outputNet = getOutputNet(masterList);
+    vector<string> outputData = getNetInfo(outputNet, masterList);
+
+    node* treeHead = genNode(outputData, masterList);
+
+
+
+    return treeHead;
 
 }
-
 //-----***-----
 
 
@@ -245,21 +313,12 @@ int main(){
 
     // outText("12");
 
+    // string inpfile = "input.txt";
+    string inpfile = "simpleTest.txt";
 
 
+    genLogicTree(inpfile);
 
-    string test = "t1 = 15";
-
-    string inpfile = "input.txt";
-
-    string line;
-    ifstream myfile(inpfile);
-
-    vector<vector<string>> inText;
-
-    while(getline(myfile,line)){
-        inText.push_back(splitString(line, ' '));
-    }
 
 
 
