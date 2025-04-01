@@ -12,6 +12,7 @@
         "cmath": "cpp",
         "ios": "cpp",
         "fstream": "cpp",
-        "stdexcept": "cpp"
+        "stdexcept": "cpp",
+        "xutility": "cpp"
     }
 }

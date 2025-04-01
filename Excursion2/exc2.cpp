@@ -5,11 +5,11 @@
 #include <vector>
 #include <sstream>
 #include <iomanip>
-#include <bits/stdc++.h>
+// #include <bits/stdc++.h> //I had a weird include path error so i commented out for now
 
 using namespace std; 
 
-class node
+struct node
 {
     ///#this will be !,+,*, or the letter input
     public:
@@ -27,7 +27,6 @@ class node
 vector<vector<double>> create2dVec(int row, int col){
     return vector<vector<double>>(row, vector<double>(col,0.0));
 }
-
 
 //Fetch the netlist string (this works)
 string getText() {
@@ -152,17 +151,118 @@ node* enTree(string line){
     return head; 
 }
 
+//-----***-----
+
+//Splits a given string by the given delimeter
+vector<string> splitString(string inStr, char del){
+
+    int splitPos;
+    string tempStr = inStr;
+    vector<string> output;
+
+
+    do{
+        splitPos = tempStr.find(del);
+
+        output.push_back(tempStr.substr(0,splitPos));
+        tempStr = tempStr.substr(splitPos+1, tempStr.length());
+
+    } while (splitPos != string::npos); //Repeats while there is a delimeter in the string
+    
+    return output;
+
+}
+
+
+//Generates the logic tree given the input netlist
+node genLogTree(node *head, string inpfile){
+
+    string line;
+    ifstream myfile(inpfile);
+
+    vector<vector<string>> inText;
+
+    while(getline(myfile,line)){
+        inText.push_back(splitString(line, ' '));
+    }
+
+    return NULL;
+
+}
+
+//Helper recursive function to generate nodes
+//Changed some things before actually doing anything with them still WIP
+node* genNode(vector<string> split, vector<string>, vector<string> right){
+
+    node* head;
+
+    head->net = split[0];
+
+    //BASECASE
+    if(split[1] == "INPUT" ){
+
+        head->left = NULL;
+        head->right = NULL;
+        head->function = split[0][0]; //Assigns the character input
+
+    }
+    else if(split[1] == "="){
+        if(split[1] == "AND"){
+            head->function = '*';
+        }
+        else if(split[1] == "OR"){
+            head -> function = '+';
+        }
+        else if(split[1] == "NOT"){
+            head -> function = '!';
+        }
+
+
+        head -> left = genNode(split[]);
+        head -> right = genNode(split[]);
+
+    }
+
+
+    return head;
+    
+
+
+}
+
+//-----***-----
+
+
 int main(){
 
     //get the string form the file 
     //string line = getText();
     //Count the number of rows
 
-    string line = "a INPUT b INPUT c INPUT d INPUT E OUTPUT t1 = AND a b t2 = AND c d E = OR t1 t2";
+    // string line = "a INPUT b INPUT c INPUT d INPUT E OUTPUT t1 = AND a b t2 = AND c d E = OR t1 t2";
 
-    node *head = enTree(line);
+    // node *head = enTree(line);
 
-    outText("12");
+    // outText("12");
+
+
+
+
+    string test = "t1 = 15";
+
+    string inpfile = "input.txt";
+
+    string line;
+    ifstream myfile(inpfile);
+
+    vector<vector<string>> inText;
+
+    while(getline(myfile,line)){
+        inText.push_back(splitString(line, ' '));
+    }
+
+
+
 
     return 0;
 }
