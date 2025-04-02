@@ -9,16 +9,16 @@
 
 using namespace std; 
 
-struct node
+struct logicNode
 {
     ///#this will be !,+,*, or the letter input
     public:
     string net;
     char function; 
-    node* left; 
-    node* right; 
+    logicNode* left; 
+    logicNode* right; 
 
-    node(string n){
+    logicNode(string n){
         net = n;
     }
 };
@@ -74,7 +74,7 @@ void outText(string outputStr){
     return; 
 }
 
-node* enTree(string line){
+logicNode* enTree(string line){
 
     //create the head 
     int output = line.find("OUTPUT")-2;
@@ -82,7 +82,7 @@ node* enTree(string line){
 
     cout<<out<<endl;
 
-    node*head = new node(out); 
+    logicNode*head = new logicNode(out); 
 
     head->net = out;
 
@@ -111,7 +111,7 @@ node* enTree(string line){
     if(element.find("NOT") == string::npos && element.find("OR") == string::npos &&  element.find("AND") == string::npos){
         head->function = '=';
         string next = element.substr(4,2); 
-        head->left = new node(next);
+        head->left = new logicNode(next);
     }
     //go here if F = AND t2 t3 for example  
     else{
@@ -136,12 +136,12 @@ node* enTree(string line){
                 i++;
                 int point = element.find(' ', i);
                 string left = element.substr(i,point-i);
-                head -> left = new node(left);
+                head -> left = new logicNode(left);
             }
             if(spaceCount == 4){
                 int point = element.find(' ', i);
                 string right = element.substr(i,point-i);
-                head -> right = new node(right);
+                head -> right = new logicNode(right);
             }
         }
     }    
@@ -223,15 +223,16 @@ vector<string> getNetInfo(string netName, vector<vector<string>> & masterList){
 
 //Helper recursive function to generate nodes
 //-----***-----
-node* genNode(vector<string> netData, vector<vector<string>> & masterList){
+logicNode* genNode(vector<string> netData, vector<vector<string>> & masterList){
 
 
     //All logic runs on the assumption of corrent data placement
     // inputs: netlabel at [0] | "INPUT at [1]"
-    //logic: netLabel at [0] | "=" at [1] | operation at [2] | first input to op at [3] | second input to op at [4]
+    // logic: netLabel at [0] | "=" at [1] | operation at [2] | first input to op at [3] | second input to op at [4]
+    // direct assignment: netLabel at [0] | "=" at [1] | assignment net at [2]
 
 
-    node* head = new node(netData[0]);
+    logicNode* head = new logicNode(netData[0]);
 
     //BASECASE
     if(netData[1] == "INPUT" ){
@@ -255,16 +256,31 @@ node* genNode(vector<string> netData, vector<vector<string>> & masterList){
         }
         else if(netData[2] == "AND"){
             head->function = '*';
+            //Adds the first point to the left branch and the second point to the right branch
+            head->left = genNode(getNetInfo(netData[3], masterList), masterList);
+            head->right = genNode(getNetInfo(netData[4], masterList), masterList);
+
+            return head;
         }
         else if(netData[2] == "OR"){
             head->function = '+';
+            //Adds the first point to the left branch and the second point to the right branch
+            head->left = genNode(getNetInfo(netData[3], masterList), masterList);
+            head->right = genNode(getNetInfo(netData[4], masterList), masterList);
+
+            return head;
         }
 
-        //Adds the first point to the left branch and the second point to the right branch
-        head->left = genNode(getNetInfo(netData[3], masterList), masterList);
-        head->right = genNode(getNetInfo(netData[4], masterList), masterList);
+        //If the proceeding operation is not a logic comparison (direct assignment)
+        head->function = '=';
+
+        head->left = genNode(getNetInfo(netData[2], masterList), masterList);
+        head->right = NULL;
 
         return head;
+
+
+
 
     }
 
@@ -276,7 +292,7 @@ node* genNode(vector<string> netData, vector<vector<string>> & masterList){
 
 //Generates the logic tree given the input file
 //-----***-----
-node* genLogicTree(string inpfile){
+logicNode* genLogicTree(string inpfile){
 
     //Generates the master list from the input file
     string line;
@@ -292,7 +308,7 @@ node* genLogicTree(string inpfile){
     string outputNet = getOutputNet(masterList);
     vector<string> outputData = getNetInfo(outputNet, masterList);
 
-    node* treeHead = genNode(outputData, masterList);
+    logicNode* treeHead = genNode(outputData, masterList);
 
     return treeHead;
 
@@ -313,7 +329,12 @@ int main(){
     // outText("12");
 
     // string inpfile = "input.txt";
-    string inpfile = "simpleTest.txt";
+
+    //Handels test case 1 a bit weird
+    //There are some nodes that are reused but this would increase the required number of gates so for now it just ignores
+    //Repeating instances of a node 
+    //ie. m5 = AND t2 t3 but m4 = AND t1 t2 earlier
+    string inpfile = "TC1.txt";
 
 
     genLogicTree(inpfile);

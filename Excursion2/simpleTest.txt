@@ -1,9 +1,0 @@
-a INPUT
-b INPUT
-c INPUT
-d INPUT
-QR OUTPUT
-t1 = OR a b
-t2 = AND c t1
-t3 = NOT d
-QR = OR t2 t3
