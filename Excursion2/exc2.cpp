@@ -288,12 +288,11 @@ node* genLogicTree(string inpfile){
         masterList.push_back(splitString(line, ' '));
     }
 
+    //Gets the output information to start the logic tree
     string outputNet = getOutputNet(masterList);
     vector<string> outputData = getNetInfo(outputNet, masterList);
 
     node* treeHead = genNode(outputData, masterList);
-
-
 
     return treeHead;
 

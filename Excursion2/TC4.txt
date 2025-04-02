@@ -1,0 +1,10 @@
+a INPUT
+b INPUT
+c INPUT
+d INPUT
+e INPUT
+F OUTPUT
+m1 = OR a b
+t1 = AND c m1
+t2 = AND d E
+F = OR t1 t2
