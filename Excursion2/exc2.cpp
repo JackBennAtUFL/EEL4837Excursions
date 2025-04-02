@@ -197,7 +197,7 @@ string getOutputNet(vector<vector<string>> & masterList){
 }
 //-----***-----
 
-//Returns the string vector containing the node information from passing the net label
+//Returns the string vector containing the logicNode information from passing the net label
 //-----***-----
 vector<string> getNetInfo(string netName, vector<vector<string>> & masterList){
 
@@ -221,9 +221,9 @@ vector<string> getNetInfo(string netName, vector<vector<string>> & masterList){
 }
 //-----***-----
 
-//Helper recursive function to generate nodes
+//Helper recursive function to generate logicNodes
 //-----***-----
-logicNode* genNode(vector<string> netData, vector<vector<string>> & masterList){
+logicNode* genlogicNode(vector<string> netData, vector<vector<string>> & masterList){
 
 
     //All logic runs on the assumption of corrent data placement
@@ -247,8 +247,8 @@ logicNode* genNode(vector<string> netData, vector<vector<string>> & masterList){
         if(netData[2] == "NOT"){
             head->function = '!';
 
-            //Adds the NOT node to the left branch of the tree
-            head->left = genNode(getNetInfo(netData[3], masterList), masterList);
+            //Adds the NOT logicNode to the left branch of the tree
+            head->left = genlogicNode(getNetInfo(netData[3], masterList), masterList);
             head->right = NULL;
 
             return head;
@@ -257,16 +257,16 @@ logicNode* genNode(vector<string> netData, vector<vector<string>> & masterList){
         else if(netData[2] == "AND"){
             head->function = '*';
             //Adds the first point to the left branch and the second point to the right branch
-            head->left = genNode(getNetInfo(netData[3], masterList), masterList);
-            head->right = genNode(getNetInfo(netData[4], masterList), masterList);
+            head->left = genlogicNode(getNetInfo(netData[3], masterList), masterList);
+            head->right = genlogicNode(getNetInfo(netData[4], masterList), masterList);
 
             return head;
         }
         else if(netData[2] == "OR"){
             head->function = '+';
             //Adds the first point to the left branch and the second point to the right branch
-            head->left = genNode(getNetInfo(netData[3], masterList), masterList);
-            head->right = genNode(getNetInfo(netData[4], masterList), masterList);
+            head->left = genlogicNode(getNetInfo(netData[3], masterList), masterList);
+            head->right = genlogicNode(getNetInfo(netData[4], masterList), masterList);
 
             return head;
         }
@@ -274,7 +274,7 @@ logicNode* genNode(vector<string> netData, vector<vector<string>> & masterList){
         //If the proceeding operation is not a logic comparison (direct assignment)
         head->function = '=';
 
-        head->left = genNode(getNetInfo(netData[2], masterList), masterList);
+        head->left = genlogicNode(getNetInfo(netData[2], masterList), masterList);
         head->right = NULL;
 
         return head;
@@ -308,12 +308,132 @@ logicNode* genLogicTree(string inpfile){
     string outputNet = getOutputNet(masterList);
     vector<string> outputData = getNetInfo(outputNet, masterList);
 
-    logicNode* treeHead = genNode(outputData, masterList);
+    logicNode* treeHead = genlogicNode(outputData, masterList);
 
     return treeHead;
 
 }
 //-----***-----
+
+
+//Convert the logic tree to NAND-NOT 
+
+/*
+example
+----\          ----NOT----\ 
+     OR ---  =              NAND -----
+----/          ----NOT----/ 
+
+----\          ----\ 
+     AND ---  =     NAND ----NOT------   NAND2 will be represented as '@'
+----/          ----/ 
+
+----NOT---- = ----NOT---- 
+*/
+void convertGate(logicNode* &root){
+    
+    if(root->function == '*'){
+
+        cout<<"convert AND "<<root->net<<endl; 
+        //The AND logicNode becomes a not logicNode
+        root->function = '!';
+
+        //The name should not matter at this point
+        logicNode* nandInsert = new logicNode(root->net+"NAND");
+
+        //This calls it nand2 
+        nandInsert->function = '@';
+        
+
+        //NAND now points to what AND inputs were
+        nandInsert->left = root->left;
+        nandInsert->right = root->right;
+
+        root->left = nandInsert;
+        //The right input to a not gate does not exist
+        root->right  = nullptr; 
+
+    }
+
+    //convert AND gates
+    else if(root->function == '+'){
+        cout<<"convert OR"<<root->net<<endl; 
+        //The OR logicNode becomes a NAND2
+        root->function = '@';
+
+        //The name should not matter at this point
+        logicNode* not1 = new logicNode(root->net+"not1");
+        not1->function = '!';
+        not1->left = root->left;
+        not1->right  = nullptr;
+        root->left = not1;
+
+
+        logicNode* not2 = new logicNode(root->net+"not2");
+        not2->function = '!';
+        not2->left = root->right;
+        not2->right  = nullptr;
+        
+        root->right = not2;
+
+        //This assigns the right function to not1 and not2
+        
+    
+
+        //NOTs before the NAND now points to what AND inputs were going down
+        
+        
+        
+        //repoint the root after reassigning it's function 
+        
+    }
+    //Don't do anything, no conversion needed, here for completeness 
+    else if(root->function == '!'){
+        cout<<"skipping not gate"<<endl;
+    }
+    return;
+}
+
+
+//Recursivly convert the tree
+void convertToNandNot(logicNode* root){
+    
+    if(root == nullptr){
+        cout<<"retuning"<<endl;
+        return;
+    }
+
+    if((root->left == nullptr && root->right == nullptr)){
+        
+        cout<<"returning is: "<<root->net<<endl;
+        return; 
+    }
+
+    convertToNandNot(root->left);
+    cout<<"just converted: "<<root->net<<endl;
+    convertToNandNot(root->right); 
+    convertGate(root);
+    return;
+}
+
+
+void printTree(logicNode* root){
+    if(root == nullptr){
+        return;
+    }
+    if((root->left == nullptr && root->right == nullptr)){
+        cout<<root->net<<endl;
+        return; 
+    }
+
+    cout<<"logicNode name: "<<root->net<<"function: "<<root->function<<endl;
+
+
+    printTree(root->left);
+   
+    printTree(root->right);
+    
+}
 
 
 int main(){
@@ -322,25 +442,25 @@ int main(){
     //string line = getText();
     //Count the number of rows
 
-    // string line = "a INPUT b INPUT c INPUT d INPUT E OUTPUT t1 = AND a b t2 = AND c d E = OR t1 t2";
-
-    // node *head = enTree(line);
-
-    // outText("12");
-
-    // string inpfile = "input.txt";
+    string inpfile = "TC6.txt";
 
     //Handels test case 1 a bit weird
-    //There are some nodes that are reused but this would increase the required number of gates so for now it just ignores
-    //Repeating instances of a node 
+    //There are some logicNodes that are reused but this would increase the required number of gates so for now it just ignores
+    //Repeating instances of a logicNode 
     //ie. m5 = AND t2 t3 but m4 = AND t1 t2 earlier
-    string inpfile = "TC1.txt";
+    //string inpfile = "TC1.txt";
 
+    logicNode* head = genLogicTree(inpfile);
 
-    genLogicTree(inpfile);
+    printTree(head);
 
+    cout<<"now convert"<<endl;
 
+    convertToNandNot(head);
 
+    cout<<"post convert"<<endl;
+
+    printTree(head);
 
 
     return 0;
