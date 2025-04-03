@@ -9,10 +9,7 @@
 
 #define INT_MAX 2147483647
 // #include <bits/stdc++.h> //I had a weird include path error so i commented out for now
-
 using namespace std; 
-
-
 
 struct logicNode
 {
@@ -22,6 +19,10 @@ struct logicNode
     char function; 
     logicNode* left; 
     logicNode* right; 
+    //Count the number of inputs at a node
+    int visited = 0;
+    //This flag tracks counted nodes
+    bool counted = false;
     int costHere;
     logicNode(string n){
         net = n;
@@ -91,12 +92,8 @@ vector<string> splitString(string inStr, char del){
     string tempStr = inStr;
     vector<string> output;
 
-
     do{
         splitPos = tempStr.find(del);
-
-        cout<<"why is auto not wroking here"<<tempStr.substr(0,splitPos)<<endl;
-
         output.push_back(tempStr.substr(0,splitPos));
         tempStr = tempStr.substr(splitPos+1, tempStr.length());
 
@@ -105,13 +102,12 @@ vector<string> splitString(string inStr, char del){
     //cout<<"outputSize is"<<output.size()<<endl;
 
     for(int i =0;i<output.size();i++){
-        cout<<"split is"<<output[i]<<endl;
+        cout<<"split is "<<output[i]<<endl;
     }
     return output;
 
 }
 //-----***-----
-
 
 //Returns the Net ID for the output point
 //-----***-----
@@ -229,9 +225,23 @@ logicNode* genLogicTree(string inpfile){
 
     myfile.open(inpfile, ios::in);
 
+
     while(getline(myfile,line)){
-        masterList.push_back(splitString(line, ' '));
         
+        vector<string> output = splitString(line, ' ');
+
+        cout<<"get thr output vector with size "<<output.size()<<endl;
+        cout<<"The 0 element is \""<<output[0]<<"\" with the size is "<<output[0].length()<<endl;
+        cout<<"The 1 element is \""<<output[1]<<"\" with the size is "<<output[0].length()<<endl;
+        
+        cout<<endl;
+
+        masterList.emplace_back(output);
+        
+        cout<<"print current master list elementwise" <<endl;
+        cout<<masterList[0][0]<<endl;
+        cout<<masterList[0][1]<<endl;
+
         cout<<"print current master list"<<endl;
         for(int i = 0; i<masterList.size();i++){
             for(int j = 0; j<masterList[0].size();j++){
@@ -264,26 +274,22 @@ logicNode* genLogicTree(string inpfile){
 }
 //-----***-----
 
-
 //Convert the logic tree to NAND-NOT 
-
 /*
-example
-----\          ----NOT----\ 
-     OR ---  =              NAND -----
-----/          ----NOT----/ 
-
+examples
+----\          ---NOT---\ 
+     OR---  =          NAND---
+----/          ---NOT---/ 
+examples
 ----\          ----\ 
-     AND ---  =     NAND ----NOT------   NAND2 will be represented as '@'
+     AND--- =     NAND----NOT---   NAND2 will be represented as '@'
 ----/          ----/ 
-
-----NOT---- = ----NOT---- 
 */
 //works
 void convertGate(logicNode* &root){
     
     if(root->function == '*'){
-
+        root->visited += 1;
         cout<<"convert AND "<<root->net<<endl; 
         //The AND logicNode becomes a not logicNode
         root->function = '!';
@@ -293,8 +299,7 @@ void convertGate(logicNode* &root){
 
         //This calls it nand2 
         nandInsert->function = '@';
-        
-
+        nandInsert->visited = 1;
         //NAND now points to what AND inputs were
         nandInsert->left = root->left;
         nandInsert->right = root->right;
@@ -302,48 +307,39 @@ void convertGate(logicNode* &root){
         root->left = nandInsert;
         //The right input to a not gate does not exist
         root->right  = nullptr; 
-
     }
 
     //convert AND gates
     else if(root->function == '+'){
+
+        root->visited += 1;
         cout<<"convert OR"<<root->net<<endl; 
         //The OR logicNode becomes a NAND2
         root->function = '@';
 
-        //The name should not matter at this point
+        //Add not gates
         logicNode* not1 = new logicNode(root->net+"not1");
         not1->function = '!';
         not1->left = root->left;
         not1->right  = nullptr;
         root->left = not1;
-
+        not1->visited = 1;
 
         logicNode* not2 = new logicNode(root->net+"not2");
         not2->function = '!';
         not2->left = root->right;
         not2->right  = nullptr;
-        
         root->right = not2;
-
-        //This assigns the right function to not1 and not2
-        
-    
-
-        //NOTs before the NAND now points to what AND inputs were going down
-        
-        
-        
-        //repoint the root after reassigning it's function 
+        not2->visited = 1;
         
     }
     //Don't do anything, no conversion needed, here for completeness 
     else if(root->function == '!'){
+        root->visited += 1;
         cout<<"skipping not gate"<<endl;
     }
     return;
 }
-
 
 //Recursivly convert the tree
 void convertToNandNot(logicNode* root){
@@ -365,7 +361,6 @@ void convertToNandNot(logicNode* root){
     convertGate(root);
     return;
 }
-
 
 void printTree(logicNode* root){
     if(root == nullptr){
@@ -422,6 +417,14 @@ int computeCost(logicNode* head){
 }
 
 int optimizeLogic(logicNode* root){
+    //don't double count stuff
+    if(root->visited == 2 && root->counted == true){
+        return root->costHere;
+    }
+
+    if(root->counted == false){
+        root->counted == true;
+    }
     //Return 0 if you get to the end
     if(root == nullptr){
         return 0;
@@ -430,7 +433,7 @@ int optimizeLogic(logicNode* root){
         return 0;
     }
 
-    //Return value if already calculated invalid if INT_MAX
+    //Return minimum value at gave if already calculated invalid if INT_MAX
     if(root->costHere != INT_MAX){
         return root->costHere;
     }
@@ -513,12 +516,6 @@ int main(){
     cout<<"post convert"<<endl;
 
     printTree(head);
-
-    cout<<"remove all double negatives"<<endl;
-
-    //Eliminate double negatives because it always improves result (or not) but leave for now
-    //remove2Not(head);
-    //printTree(head);
 
     cout<<"the cost is: "<<optimizeLogic(head);
 
