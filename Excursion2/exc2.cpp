@@ -1,13 +1,18 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <math.h>
 #include <vector>
 #include <sstream>
 #include <iomanip>
+#include <limits>
+#include <stdlib.h>
+
+#define INT_MAX 2147483647
 // #include <bits/stdc++.h> //I had a weird include path error so i commented out for now
 
 using namespace std; 
+
+
 
 struct logicNode
 {
@@ -17,9 +22,10 @@ struct logicNode
     char function; 
     logicNode* left; 
     logicNode* right; 
-
+    int costHere;
     logicNode(string n){
         net = n;
+        costHere = INT_MAX;
     }
 };
 
@@ -31,6 +37,7 @@ vector<vector<double>> create2dVec(int row, int col){
 //Fetch the netlist string (this works)
 string getText() {
     // Read the vector from the file
+    cout<<"getting text now"<<endl;
     string line;
     string newLine = "";
     vector<char> net;
@@ -74,88 +81,11 @@ void outText(string outputStr){
     return; 
 }
 
-logicNode* enTree(string line){
-
-    //create the head 
-    int output = line.find("OUTPUT")-2;
-    string out = line.substr(output,line.size()-output);
-
-    cout<<out<<endl;
-
-    logicNode*head = new logicNode(out); 
-
-    head->net = out;
-
-    //Find the 2nd occurance of the output in the string
-    bool found1st = false;
-    int outGatePos = 0; 
-    for(int  i = 0; i <line.size();i++){
-        if(line[i] == out[0] && !found1st){
-            found1st = true;
-        }
-        else if(line[i] == out[0] && found1st){
-            outGatePos = i; 
-            cout<<"does go here?"<<i<<endl;
-            break;
-        }
-        cout<<"i is:"<<i<<endl;
-    }
-
-    string element = line.substr(outGatePos,line.size() - outGatePos); 
-    cout<<outGatePos<<"element is"<<element; 
-
-    //This block does the head, there are two ways you can do the head, it may
-    //equal a logic gate or it could be a variable name 
-
-    //check to see if out put is a gate or connected to one (F = t1)
-    if(element.find("NOT") == string::npos && element.find("OR") == string::npos &&  element.find("AND") == string::npos){
-        head->function = '=';
-        string next = element.substr(4,2); 
-        head->left = new logicNode(next);
-    }
-    //go here if F = AND t2 t3 for example  
-    else{
-        if(element.find("NOT") != string::npos){
-            head->function = '!';
-        }
-        else if(element.find("AND") != string::npos){
-            head->function = '*';
-        }
-        else if(element.find("OR") != string::npos){
-            head->function = '+';
-        }
-
-        int spaceCount = 0;
-        bool foundL = false;
-        for(int i = 0;i<element.size();i++){
-            if(element[i] == ' '){
-                spaceCount +=1; 
-            }
-            if(spaceCount == 3 && !foundL){
-                foundL = true;
-                i++;
-                int point = element.find(' ', i);
-                string left = element.substr(i,point-i);
-                head -> left = new logicNode(left);
-            }
-            if(spaceCount == 4){
-                int point = element.find(' ', i);
-                string right = element.substr(i,point-i);
-                head -> right = new logicNode(right);
-            }
-        }
-    }    
-    //Inset code to constrtuct the tree 
-
-
-    return head; 
-}
-
-
-
 //Splits a given string by the given delimeter
 //-----***-----
 vector<string> splitString(string inStr, char del){
+
+    cout<<"is inStr in the room with us? "<<inStr<<endl;
 
     int splitPos;
     string tempStr = inStr;
@@ -165,11 +95,18 @@ vector<string> splitString(string inStr, char del){
     do{
         splitPos = tempStr.find(del);
 
+        cout<<"why is auto not wroking here"<<tempStr.substr(0,splitPos)<<endl;
+
         output.push_back(tempStr.substr(0,splitPos));
         tempStr = tempStr.substr(splitPos+1, tempStr.length());
 
     } while (splitPos != string::npos); //Repeats while there is a delimeter in the string
     
+    //cout<<"outputSize is"<<output.size()<<endl;
+
+    for(int i =0;i<output.size();i++){
+        cout<<"split is"<<output[i]<<endl;
+    }
     return output;
 
 }
@@ -178,21 +115,20 @@ vector<string> splitString(string inStr, char del){
 
 //Returns the Net ID for the output point
 //-----***-----
-string getOutputNet(vector<vector<string>> & masterList){
+string getOutputNet(vector<vector<string>> &masterList){
 
     for(int i = 0; i < masterList.size(); i++){
 
         if(masterList[i][1] == "OUTPUT"){
-
+            
             //Removes the item from the master list and returns the netlabel
             string outputNet = masterList[i][0];
             masterList.erase(masterList.begin()+i);
             return outputNet;
         }
-
     }
 
-    return NULL;
+    return "segmentation fault? Trivago";
 
 }
 //-----***-----
@@ -217,7 +153,6 @@ vector<string> getNetInfo(string netName, vector<vector<string>> & masterList){
     }
 
     return errorVect;
-
 }
 //-----***-----
 
@@ -230,7 +165,6 @@ logicNode* genlogicNode(vector<string> netData, vector<vector<string>> & masterL
     // inputs: netlabel at [0] | "INPUT at [1]"
     // logic: netLabel at [0] | "=" at [1] | operation at [2] | first input to op at [3] | second input to op at [4]
     // direct assignment: netLabel at [0] | "=" at [1] | assignment net at [2]
-
 
     logicNode* head = new logicNode(netData[0]);
 
@@ -278,15 +212,8 @@ logicNode* genlogicNode(vector<string> netData, vector<vector<string>> & masterL
         head->right = NULL;
 
         return head;
-
-
-
-
     }
-
     return NULL;
-    
-
 }
 //-----***-----
 
@@ -296,22 +223,44 @@ logicNode* genLogicTree(string inpfile){
 
     //Generates the master list from the input file
     string line;
-    ifstream myfile(inpfile);
-
+    ifstream myfile;
+    
     vector<vector<string>> masterList;
+
+    myfile.open(inpfile, ios::in);
 
     while(getline(myfile,line)){
         masterList.push_back(splitString(line, ' '));
+        
+        cout<<"print current master list"<<endl;
+        for(int i = 0; i<masterList.size();i++){
+            for(int j = 0; j<masterList[0].size();j++){
+            
+                cout<<masterList[i][j]<<" ";
+            }   
+            cout<<endl;     
+        }
     }
 
+    cout<<masterList.size()<<endl;
+    for(int i = 0;i < masterList.size(); i++){
+        for(int j = 0;j < masterList[0].size(); j++){
+            cout<<masterList[i][j]<<" ";
+        }
+        cout<<endl;
+    }
+
+    string outputNet;
     //Gets the output information to start the logic tree
-    string outputNet = getOutputNet(masterList);
+    outputNet = getOutputNet(masterList);
+
+    cout<<endl<<endl<<"get here"<<endl<<outputNet<<endl<<endl;
+
     vector<string> outputData = getNetInfo(outputNet, masterList);
 
     logicNode* treeHead = genlogicNode(outputData, masterList);
 
     return treeHead;
-
 }
 //-----***-----
 
@@ -330,6 +279,7 @@ example
 
 ----NOT---- = ----NOT---- 
 */
+//works
 void convertGate(logicNode* &root){
     
     if(root->function == '*'){
@@ -428,21 +378,123 @@ void printTree(logicNode* root){
 
     cout<<"logicNode name: "<<root->net<<"function: "<<root->function<<endl;
 
-
-    printTree(root->left);
-   
+    printTree(root->left);   
     printTree(root->right);
     
 }
 
+//This is paired with remove2Not 
+int getCost(char symbol){
+    switch(symbol) {
+        //NOT
+        case '!':
+            return 2;
+        //NAND2
+        case '@':
+            return 3;
+        //AND2
+        case '*':
+            return 4;
+        //NOR2
+        case 'x':
+            return 6;
+        //OR2
+        case '+':
+            return 4;
+        //AOI21
+        case '.':
+            return 7;
+        //AOI22
+        case '$':
+            return 7;
+        default:
+            return 0; // Return 0 for inputs or empty
+    }
+
+}
+
+int computeCost(logicNode* head){
+    if(head == nullptr){
+        return 0;
+    }
+    cout<<"function is"<<head->function<<endl;
+    return getCost(head->function) + computeCost(head->left) + computeCost(head->right);
+}
+
+int optimizeLogic(logicNode* root){
+    //Return 0 if you get to the end
+    if(root == nullptr){
+        return 0;
+    }
+    if(root->left == nullptr && root->right == nullptr){
+        return 0;
+    }
+
+    //Return value if already calculated invalid if INT_MAX
+    if(root->costHere != INT_MAX){
+        return root->costHere;
+    }
+
+    int cost[7];
+
+    //use INT MAX to avoid invalid paths
+    for (int i = 0; i < 7; i++) cost[i] = INT_MAX;
+    
+    //now check for match the cost 
+    //the best result will be taken at each stage going up
+    
+    //NOT
+    if(root->function == '!'){
+       cost[0] = 2+optimizeLogic(root->left);
+
+       //Check AND2
+        if(root->left->function == '@'){
+            cost[2] = 4+optimizeLogic(root->left->left) + optimizeLogic(root->left->right);
+
+            //Check NOR2
+            if(root->left->left->function == '!' && root->left->right->function == '!'){
+                cost[3] = 6+optimizeLogic(root->left->left->left) + optimizeLogic(root->left->right->left);
+            }
+
+            //Check AOI21 NAND on the left
+            if(root->left->left->function == '@' && root->left->right->function == '!'){
+                cost[5] = 7+optimizeLogic(root->left->left->left) + optimizeLogic(root->left->left->right)  + optimizeLogic(root->left->right->left);
+            }
+            //Check AOI21 NAND on the right - these 2 are mutally exclusive
+            if(root->left->left->function == '!' && root->left->right->function == '@'){
+                cost[5] = 7+optimizeLogic(root->left->right->left) + optimizeLogic(root->left->right->right)  + optimizeLogic(root->left->left->left);
+            }
+
+            //Check for AIOLI (AOI22)
+            if(root->left->left->function == '@' && root->left->right->function == '@'){
+                cost[6] = 7+optimizeLogic(root->left->right->left) + optimizeLogic(root->left->right->right)  + optimizeLogic(root->left->left->left) + optimizeLogic(root->left->right);
+            }
+        }
+          
+    }
+    //NAND2 then check OR2 from there
+    else if(root->function == '@'){
+        cost[1] = 3 + optimizeLogic(root->left) + optimizeLogic(root->right);
+
+        //OR2
+        if(root->left->function == '!' && root->right->function == '!'){
+            cost[4] = 4+optimizeLogic(root->left->left) + optimizeLogic(root->right->left);
+        }
+    }
+    
+    int localMin = INT_MAX; 
+    for(int i = 0;i<7;i++){
+        if(cost[i] < localMin) localMin = cost[i];
+    }
+    
+    outText(to_string(localMin));
+
+    return localMin;
+}
 
 int main(){
 
-    //get the string form the file 
-    //string line = getText();
-    //Count the number of rows
-
-    string inpfile = "TC6.txt";
+    string inpfile = "input.txt";
 
     //Handels test case 1 a bit weird
     //There are some logicNodes that are reused but this would increase the required number of gates so for now it just ignores
@@ -462,6 +514,13 @@ int main(){
 
     printTree(head);
 
+    cout<<"remove all double negatives"<<endl;
+
+    //Eliminate double negatives because it always improves result (or not) but leave for now
+    //remove2Not(head);
+    //printTree(head);
+
+    cout<<"the cost is: "<<optimizeLogic(head);
 
     return 0;
 }
