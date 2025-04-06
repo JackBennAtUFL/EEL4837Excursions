@@ -7,14 +7,15 @@ f INPUT
 g INPUT
 h INPUT
 F OUTPUT
-t1 = AND b c
-t2 = OR a t1
-t3 = OR d e
-t4 = AND f g
-t5 = AND t2 t3
-t6 = OR t4 t5
-t7 = AND a b
-t8 = OR t7 d
-t9 = AND t3 t8
-t10 = AND t6 h
-F = OR t9 t10
+m1 = AND b c
+t1 = OR a m1
+t2 = OR d e
+m2 = AND a b
+t3 = OR d m2
+m3 = AND f g
+m4 = AND t1 t2
+t4 = OR m4 m3
+m5 = AND t2 t3
+m6 = AND t4 h
+t5 = OR m6 m5
+F = t5
