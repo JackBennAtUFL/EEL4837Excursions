@@ -7,7 +7,7 @@
 #include <limits>
 #include <stdlib.h>
 
-#define INT_MAX 2147483647
+#define INT_MA 2147483647
 // #include <bits/stdc++.h> //I had a weird include path error so i commented out for now
 using namespace std; 
 
@@ -26,19 +26,19 @@ struct logicNode
     int costHere;
     logicNode(string n){
         net = n;
-        costHere = INT_MAX;
+        costHere = INT_MA;
     }
 };
 
 //Fetch the netlist string (this works)
-string getText() {
+string getText(string inFile) {
     // Read the vector from the file
     cout<<"getting text now"<<endl;
     string line;
     string newLine = "";
     vector<char> net;
     ifstream myFile;
-    myFile.open("input.txt", ios::in);
+    myFile.open(inFile, ios::in);
 
     if (myFile.is_open()) {
         bool carReturn = false;
@@ -77,6 +77,7 @@ void outText(string outputStr){
     return; 
 }
 
+/* Gradescope did not like this for some reason
 //Splits a given string by the given delimeter
 //-----***-----
 vector<string> splitString(string inStr, char del){
@@ -102,16 +103,19 @@ vector<string> splitString(string inStr, char del){
     return output;
 
 }
-//-----***-----
+-----***-----
+*/
 
 //Returns the Net ID for the output point
 //-----***-----
 string getOutputNet(vector<vector<string>> &masterList){
 
+    cout<<"get output net"<<endl;
+
     for(int i = 0; i < masterList.size(); i++){
 
+        cout<<masterList[i][1]<<endl;
         if(masterList[i][1] == "OUTPUT"){
-            
             //Removes the item from the master list and returns the netlabel
             string outputNet = masterList[i][0];
             masterList.erase(masterList.begin()+i);
@@ -120,7 +124,7 @@ string getOutputNet(vector<vector<string>> &masterList){
     }
 
     //this is useless and is only to prevent errors?
-    return "segmentation fault? Trivago";
+    return "failed to find";
 
 }
 //-----***-----
@@ -129,13 +133,13 @@ string getOutputNet(vector<vector<string>> &masterList){
 //-----***-----
 vector<string> getNetInfo(string netName, vector<vector<string>> & masterList){
 
-    vector<string> errorVect;
-    errorVect.push_back("Not Found");
+    vector<string> errorVect = {"not found"};
 
     for(int i = 0; i < masterList.size(); i++){
 
-        if(masterList[i][0] == netName){
+        cout<<masterList[i][0]<<"f"<<endl;
 
+        if(masterList[i][0] == netName){
             //Removes the item from the master list and returns the net info
             vector<string> netInfo = masterList[i];
             masterList.erase(masterList.begin() + i);
@@ -157,6 +161,9 @@ logicNode* genlogicNode(vector<string> netData, vector<vector<string>> & masterL
     // inputs: netlabel at [0] | "INPUT at [1]"
     // logic: netLabel at [0] | "=" at [1] | operation at [2] | first input to op at [3] | second input to op at [4]
     // direct assignment: netLabel at [0] | "=" at [1] | assignment net at [2]
+
+    cout<<"net data is"<<netData[0]<<endl;
+    cout<<"net 1 is "<<netData[1]<<endl;
 
     logicNode* head = new logicNode(netData[0]);
 
@@ -214,18 +221,16 @@ logicNode* genlogicNode(vector<string> netData, vector<vector<string>> & masterL
 
 //Generates the logic tree given the input file
 //-----***-----
-logicNode* genLogicTree(){
+logicNode* genLogicTree(string fileName){
 
     //Generates the master list from the input file
     string line;
     ifstream myfile;
     
-    string text = getText();
+    string text = getText(fileName);
 
-    //Take the first row because it has to be input this gives us a reliable vector
-    vector<vector<string>> masterList = {{text.substr(0,1),text.substr(2,5)}};
-
-    bool outFlag = false;
+    //Take the first row because it has to be input this gives us a reliable vector to beat segment fault
+    vector<vector<string>> masterList = {{text.substr(0,1),text.substr(2,5)," "," "," "}};
 
     //takes care of the inputs
     for(int i = 8;i<text.find("OUTPUT")-2;i++){
@@ -242,10 +247,9 @@ logicNode* genLogicTree(){
             i++;
         }
         row.push_back(tempStr2);
+
         masterList.push_back(row);
     }
-
-    cout<<text<<endl;
 
     //Take care of the output
     vector<string> row; 
@@ -253,15 +257,6 @@ logicNode* genLogicTree(){
     row.push_back(keyVal);
     row.push_back(text.substr(text.find("OUTPUT"),6));
     masterList.push_back(row);
-
-    cout<<masterList.size()<<endl;
-    for(int i = 0;i < masterList.size(); i++){
-        for(int j = 0;j < masterList[0].size(); j++){
-            cout<<masterList[i][j]<<" ";
-        }
-        cout<<endl;
-    }
-
 
     //now do the logic gates
     for(int i = text.find("OUTPUT")+7;i<text.length();i++){
@@ -271,16 +266,87 @@ logicNode* genLogicTree(){
         string in1;
         string in2;
         vector<string> row; 
-        //the output at the end         
+
+        vector<string> rowKey;
+
+        //key value output at the end         
         if(text.substr(i,1) == keyVal){
+            
+
+            rowKey.push_back(text.substr(i,1));
+
+            cout<<"found key"<<nodeName<<endl;
             //push the equals
-            row.push_back(text.substr(i,1));
             i+=2;
-            while(i<text.length()){
-                in1.push_back(text[i++]);
+            rowKey.push_back(text.substr(i,1));
+            i+=2;
+            
+             //if there is a NOT gate
+            if(text[i] == 'N'){
+                rowKey.push_back("NOT");
+                i+= 4;
+
+                while(text[i] != ' '){
+                    in1.push_back(text[i++]);
+                }
+                rowKey.push_back(in1);
+            
+                masterList.push_back(rowKey);
+
             }
-            row.push_back(in1);
-            masterList.push_back(row);
+            else if(text[i] == 'A'){
+                
+                rowKey.push_back("AND");
+                i+= 4;
+                while(text[i] != ' '){
+                    in1.push_back(text[i++]);
+                }
+                i++;
+                while(text[i] != ' '){
+                    in2.push_back(text[i++]);
+                }
+                
+                rowKey.push_back(in1);
+                rowKey.push_back(in2);
+
+                masterList.push_back(rowKey);
+
+            }
+            else if(text[i] == 'O'){
+                row.push_back("OR");
+                i+= 3;
+                while(text[i] != ' '){
+                    in1.push_back(text[i]);
+                    i++;
+                }
+                i++;
+                while(text[i] != ' '){
+                    in2.push_back(text[i++]);
+                }
+                
+                rowKey.push_back(in1);
+                rowKey.push_back(in2);
+
+                masterList.push_back(rowKey);
+                
+            }
+            //go here if direct assignment 
+            else{
+                //push the equals
+                
+                while(i<text.length()){
+                    in1.push_back(text[i++]);
+                }
+                rowKey.push_back(in1);
+                masterList.push_back(rowKey);
+
+            }
+            cout<<"fill"<<rowKey[1]<<"fill";
+            cout<<row.size()<<endl;
+            for(int j = 0;j < row.size(); j++){
+                cout<<rowKey[j]<<" ";
+            }
+            
             break;
         }
 
@@ -293,7 +359,7 @@ logicNode* genLogicTree(){
         row.push_back(text.substr(i,1));
 
         i+=2;
-        cout<<text[i]<<endl;
+    
         //if there is a NOT gate
         if(text[i] == 'N'){
             row.push_back("NOT");
@@ -307,7 +373,7 @@ logicNode* genLogicTree(){
             masterList.push_back(row);
         }
         else if(text[i] == 'A'){
-            cout<<"here?"<<endl;
+            
             row.push_back("AND");
             i+= 4;
             while(text[i] != ' '){
@@ -320,11 +386,6 @@ logicNode* genLogicTree(){
             
             row.push_back(in1);
             row.push_back(in2);
-
-            for(int j = 0;j<row.size();j++){
-                cout<<row[j]<<" ";
-            }
-            cout<<endl;
 
             masterList.push_back(row);
         }
@@ -343,30 +404,32 @@ logicNode* genLogicTree(){
             row.push_back(in1);
             row.push_back(in2);
 
-    
             masterList.push_back(row);
         }
 
-        cout<<"the loop end char is"<<text[i]<<endl;
     }
 
-    cout<<masterList.size()<<endl;
-    for(int i = 0;i < masterList.size(); i++){
-        for(int j = 0;j < masterList[i].size(); j++){
-            cout<<masterList[i][j]<<" ";
-        }
-        cout<<endl;
-    }
+    // cout<<masterList.size()<<endl;
+    // for(int i = 0;i < masterList.size(); i++){
+        
+    //     cout<<"row size is: "<<masterList[i].size()<<" ";
+    //     for(int j = 0;j < masterList[i].size(); j++){
+    //         cout<<masterList[i][j]<<" ";
+    //     }
+    //     cout<<endl;
+    // }
 
     string outputNet;
     //Gets the output information to start the logic tree
     outputNet = getOutputNet(masterList);
 
-    //cout<<endl<<endl<<"get here"<<endl<<outputNet<<endl<<endl;
+    cout<<"OUtput net is"<<endl<<outputNet<<endl<<endl;
 
     vector<string> outputData = getNetInfo(outputNet, masterList);
 
     logicNode* treeHead = genlogicNode(outputData, masterList);
+
+    cout<<treeHead->function;
 
     return treeHead;
 }
@@ -488,18 +551,6 @@ int getCost(char symbol){
         //AND2
         case '*':
             return 4;
-        //NOR2
-        case 'x':
-            return 6;
-        //OR2
-        case '+':
-            return 4;
-        //AOI21
-        case '.':
-            return 7;
-        //AOI22
-        case '$':
-            return 7;
         default:
             return 0; // Return 0 for inputs or empty
     }
@@ -536,15 +587,15 @@ int optimizeLogic(logicNode* root){
 
     cout<<root->function<<root->net<<endl;
 
-    //Return minimum value at gave if already calculated invalid if INT_MAX
-    if(root->costHere != INT_MAX){
+    //Return minimum value at gave if already calculated invalid if INT_MA
+    if(root->costHere != INT_MA){
         return root->costHere;
     }
 
     int cost[7];
 
     //use INT MAX to avoid invalid paths
-    for (int i = 0; i < 7; i++) cost[i] = INT_MAX;
+    for (int i = 0; i < 7; i++) cost[i] = INT_MA;
     
     //now check for match the cost 
     //the best result will be taken at each stage going up
@@ -588,7 +639,7 @@ int optimizeLogic(logicNode* root){
         }
     }
     
-    int localMin = INT_MAX; 
+    int localMin = INT_MA; 
     for(int i = 0;i<7;i++){
         if(cost[i] < localMin) localMin = cost[i];
     }
@@ -607,7 +658,9 @@ int main(){
     //ie. m5 = AND t2 t3 but m4 = AND t1 t2 earlier
     //string inpfile = "TC1.txt";
 
-    logicNode* head = genLogicTree();
+    logicNode* head = genLogicTree("input.txt");
+
+    cout<<"now print the tree"<<endl;
 
     printTree(head);
 
