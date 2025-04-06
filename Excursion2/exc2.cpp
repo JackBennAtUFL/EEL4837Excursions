@@ -5,6 +5,7 @@
 #include <sstream>
 #include <iomanip>
 #include <limits>
+#include <bits/stdc++.h>
 #include <stdlib.h>
 
 #define INT_MA 2147483647
@@ -61,6 +62,7 @@ string getText(string inFile) {
         
     } else cout << "Error: Bad input file" << endl;
     
+    cout<<newLine<<endl;
     return newLine;
 }
 
@@ -110,8 +112,6 @@ vector<string> splitString(string inStr, char del){
 //-----***-----
 string getOutputNet(vector<vector<string>> &masterList){
 
-    cout<<"get output net"<<endl;
-
     for(int i = 0; i < masterList.size(); i++){
 
         cout<<masterList[i][1]<<endl;
@@ -133,7 +133,7 @@ string getOutputNet(vector<vector<string>> &masterList){
 //-----***-----
 vector<string> getNetInfo(string netName, vector<vector<string>> & masterList){
 
-    vector<string> errorVect = {"not found"};
+    vector<string> errorVect = {netName};
 
     for(int i = 0; i < masterList.size(); i++){
 
@@ -141,7 +141,6 @@ vector<string> getNetInfo(string netName, vector<vector<string>> & masterList){
 
             //Removes the item from the master list and returns the net info
             vector<string> netInfo = masterList[i];
-
 
             masterList.erase(masterList.begin() + i);
 
@@ -154,9 +153,7 @@ vector<string> getNetInfo(string netName, vector<vector<string>> & masterList){
 
             return netInfo;
         }
-
     }
-    
     return errorVect;
 }
 //-----***-----
@@ -177,8 +174,16 @@ logicNode* genlogicNode(vector<string> netData, vector<vector<string>> & masterL
             }
             cout<<"catchSp"<<endl;
 
-
     logicNode* head = new logicNode(netData[0]);
+
+    if(netData.size() == 1){
+        cout<<"data size = 1"<<endl;
+
+        head->left = nullptr;
+        head->right = nullptr;
+        head->function = netData[0][0];
+        return head;
+    }
 
     //BASECASE
     if(netData[1] == "INPUT" ){
@@ -270,15 +275,18 @@ logicNode* genLogicTree(string fileName){
     }
 
     //Take care of the output
-    vector<string> row; 
+    vector<string> row1; 
     string keyVal = text.substr(text.find("OUTPUT")-2,1);
-    row.push_back(keyVal);
-    row.push_back(text.substr(text.find("OUTPUT"),6));
-    masterList.push_back(row);
+    row1.push_back(keyVal);
+    row1.push_back(text.substr(text.find("OUTPUT"),6));
+    masterList.push_back(row1);
+
+    //cout<<"key value is"<<keyVal<<"5"<<endl;
 
     //now do the logic gates
     for(int i = text.find("OUTPUT")+7;i<text.length();i++){
     
+
         string nodeName;
         vector<string> row; 
 
@@ -301,16 +309,16 @@ logicNode* genLogicTree(string fileName){
         string in1;
         string in2;
         
-
         vector<string> rowKey;
-
+ 
+        cout<<"this value: "<<text[i]<<endl;
         //key value output at the end         
         if(text.substr(i,1) == keyVal){
-            
+            cout<<"found key"<<endl;
 
             rowKey.push_back(text.substr(i,1));
 
-            cout<<"found key"<<nodeName<<endl;
+           
             //push the equals
             i+=2;
             rowKey.push_back(text.substr(i,1));
@@ -366,28 +374,16 @@ logicNode* genLogicTree(string fileName){
                 masterList.push_back(rowKey);
                 
             }
-            //go here if direct assignment 
-            else{
-                //push the equals
-                
-                while(i<text.length()){
-                    in1.push_back(text[i++]);
-                }
-                rowKey.push_back(in1);
-                masterList.push_back(rowKey);
+        
 
-            }
-            cout<<"fill"<<rowKey[1]<<"fill";
-            cout<<row.size()<<endl;
-            for(int j = 0;j < row.size(); j++){
-                cout<<rowKey[j]<<" ";
-            }
-            
+            cout<<"Text is"<<text[i];
             break;
         }
-
+        
         //node name a = AND x z
         //          ^
+
+        cout<<"end up here"<<endl;
 
         //push the equals
         row.push_back(text.substr(i,1));
@@ -444,15 +440,38 @@ logicNode* genLogicTree(string fileName){
     }
 
 
-        cout<<masterList.size()<<endl;
-        for(int i = 0;i < masterList.size(); i++){
-            
-            cout<<"row size is: "<<masterList[i].size()<<" ";
-            for(int j = 0;j < masterList[i].size(); j++){
-                cout<<masterList[i][j]<<" ";
+    string lastRow;
+    vector<string> end;
+    if(masterList[masterList.size()-1][0] != keyVal){
+        cout<<"go here"<<endl;
+        end.push_back(keyVal);
+        end.push_back("=");
+
+
+        for(int i = text.length()-2;1;i--){
+            if(text[i] == ' '){
+                break;
             }
-            cout<<endl;
+            lastRow.push_back(text[i]);
+            cout<<"last row is"<<lastRow<<endl;
         }
+        reverse(lastRow.begin(),lastRow.end());
+
+        end.push_back(lastRow);
+        masterList.push_back(end);
+
+    }
+
+    cout<<"print master List"<<endl;
+    cout<<masterList.size()<<endl;
+    for(int i = 0;i < masterList.size(); i++){
+            
+        cout<<"row size is: "<<masterList[i].size()<<" ";
+        for(int j = 0;j < masterList[i].size(); j++){
+            cout<<masterList[i][j]<<" ";
+        }
+        cout<<endl;
+    }
 
     string outputNet;
     //Gets the output information to start the logic tree
