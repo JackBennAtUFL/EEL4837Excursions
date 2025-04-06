@@ -79,35 +79,6 @@ void outText(string outputStr){
     return; 
 }
 
-/* Gradescope did not like this for some reason
-//Splits a given string by the given delimeter
-//-----***-----
-vector<string> splitString(string inStr, char del){
-
-    cout<<"is inStr in the room with us? "<<inStr<<endl;
-
-    int splitPos;
-    string tempStr = inStr;
-    vector<string> output;
-
-    do{
-        splitPos = tempStr.find(del);
-        output.push_back(tempStr.substr(0,splitPos));
-        tempStr = tempStr.substr(splitPos+1, tempStr.length());
-
-    } while (splitPos != string::npos); //Repeats while there is a delimeter in the string
-    
-    //cout<<"outputSize is"<<output.size()<<endl;
-
-    for(int i =0;i<output.size();i++){
-        cout<<"split is "<<output[i]<<endl;
-    }
-    return output;
-
-}
------***-----
-*/
-
 //Returns the Net ID for the output point
 //-----***-----
 string getOutputNet(vector<vector<string>> &masterList){
@@ -623,19 +594,20 @@ int optimizeLogic(logicNode* root){
         return root->costHere;
     }
 
-    int cost[7];
+    int cost[8];
 
     //use INT MAX to avoid invalid paths
-    for (int i = 0; i < 7; i++) cost[i] = INT_MA;
+    for (int i = 0; i < 8; i++) cost[i] = INT_MA;
     
     //now check for match the cost 
     //the best result will be taken at each stage going up
     
-    //NOT
+    //Deal with direct assignment
     if(root->function == '='){
-        optimizeLogic(root->left);
+        cost[7] =0 + optimizeLogic(root->left);
     }
-    if(root->function == '!'){
+    ////NOT
+    else if(root->function == '!'){
        cost[0] = 2+optimizeLogic(root->left);
 
        //Check AND2
@@ -674,7 +646,7 @@ int optimizeLogic(logicNode* root){
     }
     
     int localMin = INT_MA; 
-    for(int i = 0;i<7;i++){
+    for(int i = 0;i<8;i++){
         if(cost[i] < localMin) localMin = cost[i];
     }
     
@@ -706,6 +678,8 @@ int main(){
     cout<<"post convert"<<endl;
 
     printTree(head);
+
+    cout<<"optimize"<<endl;
 
     int result = optimizeLogic(head);
 
