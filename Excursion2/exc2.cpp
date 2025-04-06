@@ -279,11 +279,28 @@ logicNode* genLogicTree(string fileName){
     //now do the logic gates
     for(int i = text.find("OUTPUT")+7;i<text.length();i++){
     
-        string nodeName = text.substr(i,2);
+        string nodeName;
+        vector<string> row; 
+
+        if(text[i+1] != ' '){
+            nodeName = text.substr(i,2);
+            cout<<nodeName<<endl;
+            row.push_back(nodeName);
+            i+=3;
+        }
+        else{
+            cout<<"does it go here"<<endl;
+            nodeName = text.substr(i,1);
+            
+            cout<<nodeName<<endl;
+            row.push_back(nodeName);
+            i+=2;
+        }
+        
         string function;
         string in1;
         string in2;
-        vector<string> row; 
+        
 
         vector<string> rowKey;
 
@@ -371,8 +388,6 @@ logicNode* genLogicTree(string fileName){
 
         //node name a = AND x z
         //          ^
-        row.push_back(nodeName);
-        i+=3;
 
         //push the equals
         row.push_back(text.substr(i,1));
@@ -427,7 +442,6 @@ logicNode* genLogicTree(string fileName){
         }
 
     }
-
 
 
         cout<<masterList.size()<<endl;
