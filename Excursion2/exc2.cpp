@@ -137,12 +137,21 @@ vector<string> getNetInfo(string netName, vector<vector<string>> & masterList){
 
     for(int i = 0; i < masterList.size(); i++){
 
-        cout<<masterList[i][0]<<"f"<<endl;
-
         if(masterList[i][0] == netName){
+
             //Removes the item from the master list and returns the net info
             vector<string> netInfo = masterList[i];
+
+
             masterList.erase(masterList.begin() + i);
+
+            cout<<netInfo.size()<<" net size was"<<endl;
+            
+            for(int i = 0;i<netInfo.size();i++){
+                cout<<netInfo[i]<<" ";
+            }
+            cout<<"catchSp"<<endl;
+
             return netInfo;
         }
 
@@ -156,14 +165,18 @@ vector<string> getNetInfo(string netName, vector<vector<string>> & masterList){
 //-----***-----
 logicNode* genlogicNode(vector<string> netData, vector<vector<string>> & masterList){
 
-
     //All logic runs on the assumption of corrent data placement
     // inputs: netlabel at [0] | "INPUT at [1]"
     // logic: netLabel at [0] | "=" at [1] | operation at [2] | first input to op at [3] | second input to op at [4]
     // direct assignment: netLabel at [0] | "=" at [1] | assignment net at [2]
 
-    cout<<"net data is"<<netData[0]<<endl;
-    cout<<"net 1 is "<<netData[1]<<endl;
+    cout<<netData.size()<<" net size was"<<endl;
+            
+            for(int i = 0;i<netData.size();i++){
+                cout<<netData[i]<<" ";
+            }
+            cout<<"catchSp"<<endl;
+
 
     logicNode* head = new logicNode(netData[0]);
 
@@ -177,6 +190,10 @@ logicNode* genlogicNode(vector<string> netData, vector<vector<string>> & masterL
         return head;
     }
     else if(netData[1] == "="){
+        cout<<"found an = "<<endl;
+
+        cout<<"net 2 is "<<netData[2]<<endl;
+
         if(netData[2] == "NOT"){
             head->function = '!';
 
@@ -192,13 +209,14 @@ logicNode* genlogicNode(vector<string> netData, vector<vector<string>> & masterL
         else if(netData[2] == "AND"){
             head->function = '*';
             //Adds the first point to the left branch and the second point to the right branch
-            cout<<"is theis failing here???"<<endl;
             head->left = genlogicNode(getNetInfo(netData[3], masterList), masterList);
             head->right = genlogicNode(getNetInfo(netData[4], masterList), masterList);
 
             return head;
         }
         else if(netData[2] == "OR"){
+            
+            cout<<"is it going here"; 
             head->function = '+';
             //Adds the first point to the left branch and the second point to the right branch
             head->left = genlogicNode(getNetInfo(netData[3], masterList), masterList);
@@ -230,7 +248,7 @@ logicNode* genLogicTree(string fileName){
     string text = getText(fileName);
 
     //Take the first row because it has to be input this gives us a reliable vector to beat segment fault
-    vector<vector<string>> masterList = {{text.substr(0,1),text.substr(2,5)," "," "," "}};
+    vector<vector<string>> masterList = {{text.substr(0,1),text.substr(2,5)}};
 
     //takes care of the inputs
     for(int i = 8;i<text.find("OUTPUT")-2;i++){
@@ -313,7 +331,8 @@ logicNode* genLogicTree(string fileName){
 
             }
             else if(text[i] == 'O'){
-                row.push_back("OR");
+                
+                rowKey.push_back("OR");
                 i+= 3;
                 while(text[i] != ' '){
                     in1.push_back(text[i]);
@@ -409,21 +428,23 @@ logicNode* genLogicTree(string fileName){
 
     }
 
-    // cout<<masterList.size()<<endl;
-    // for(int i = 0;i < masterList.size(); i++){
-        
-    //     cout<<"row size is: "<<masterList[i].size()<<" ";
-    //     for(int j = 0;j < masterList[i].size(); j++){
-    //         cout<<masterList[i][j]<<" ";
-    //     }
-    //     cout<<endl;
-    // }
+
+
+        cout<<masterList.size()<<endl;
+        for(int i = 0;i < masterList.size(); i++){
+            
+            cout<<"row size is: "<<masterList[i].size()<<" ";
+            for(int j = 0;j < masterList[i].size(); j++){
+                cout<<masterList[i][j]<<" ";
+            }
+            cout<<endl;
+        }
 
     string outputNet;
     //Gets the output information to start the logic tree
     outputNet = getOutputNet(masterList);
 
-    cout<<"OUtput net is"<<endl<<outputNet<<endl<<endl;
+    cout<<"OUtput net is"<<endl<<outputNet[0]<<" "<<outputNet[1]<<" "<<outputNet[2]<<endl<<endl;
 
     vector<string> outputData = getNetInfo(outputNet, masterList);
 
@@ -499,6 +520,9 @@ void convertGate(logicNode* &root){
         root->visited += 1;
         cout<<"skipping not gate"<<endl;
     }
+    else{
+        cout<<"skipped ="<<endl;
+    }
     return;
 }
 
@@ -539,32 +563,6 @@ void printTree(logicNode* root){
     
 }
 
-//This is paired with remove2Not 
-int getCost(char symbol){
-    switch(symbol) {
-        //NOT
-        case '!':
-            return 2;
-        //NAND2
-        case '@':
-            return 3;
-        //AND2
-        case '*':
-            return 4;
-        default:
-            return 0; // Return 0 for inputs or empty
-    }
-
-}
-
-int computeCost(logicNode* head){
-    if(head == nullptr){
-        return 0;
-    }
-    cout<<"function is"<<head->function<<endl;
-    return getCost(head->function) + computeCost(head->left) + computeCost(head->right);
-}
-
 int optimizeLogic(logicNode* root){
     
     //don't double count stuff
@@ -601,6 +599,9 @@ int optimizeLogic(logicNode* root){
     //the best result will be taken at each stage going up
     
     //NOT
+    if(root->function == '='){
+        optimizeLogic(root->left);
+    }
     if(root->function == '!'){
        cost[0] = 2+optimizeLogic(root->left);
 
@@ -660,11 +661,12 @@ int main(){
 
     logicNode* head = genLogicTree("input.txt");
 
-    cout<<"now print the tree"<<endl;
+    cout<<endl<<"now print the tree"<<endl;
+
 
     printTree(head);
 
-    cout<<"now convert"<<endl;
+    cout<<"now convert"<<endl<<endl<<endl<<endl<<endl;
 
     convertToNandNot(head);
 
