@@ -21,13 +21,15 @@ struct logicNode
     logicNode* left; 
     logicNode* right; 
     //Count the number of inputs at a node
-    int visited = 0;
-    //This flag tracks counted nodes
-    bool counted = false;
+    bool visited;
+    bool counted;
+
     int costHere;
     logicNode(string n){
         net = n;
         costHere = INT_MA;
+        visited = false;
+        counted = false;
     }
 };
 
@@ -567,17 +569,26 @@ void printTree(logicNode* root){
     
 }
 
+void markDuplicates(logicNode* root){
+    if(root == nullptr){
+        return;
+    }
+    if((root->left == nullptr && root->right == nullptr)){
+        cout<<root->net<<endl;
+        return; 
+    }
+
+    //true if once 
+    if(root->visited == false) root->visited = true;
+    //false if twice 
+    if(root->visited == true) root->visited = false;
+
+    printTree(root->left);   
+    printTree(root->right);
+}
+
 int optimizeLogic(logicNode* root){
     
-    //don't double count stuff
-    // if(root->visited == 2 && root->counted == true){
-    //     return root->costHere;
-    // }
-
-    //change visited flag
-    if(root->counted == false){
-        root->counted == true;
-    }
     //Return 0 if you get to the end
     if(root == nullptr){
         return 0;
@@ -595,7 +606,6 @@ int optimizeLogic(logicNode* root){
     }
 
     int cost[8];
-
     //use INT MAX to avoid invalid paths
     for (int i = 0; i < 8; i++) cost[i] = INT_MA;
     
@@ -611,25 +621,25 @@ int optimizeLogic(logicNode* root){
        cost[0] = 2+optimizeLogic(root->left);
 
        //Check AND2
-        if(root->left->function == '@'){
+        if(root->left->function == '@' && root->visited == true){
             cost[2] = 4+optimizeLogic(root->left->left) + optimizeLogic(root->left->right);
 
             //Check NOR2
-            if(root->left->left->function == '!' && root->left->right->function == '!'){
+            if(root->left->left->function == '!' && root->left->right->function == '!' && root->left->left->visited == true && root->left->right->visited == true){
                 cost[3] = 6+optimizeLogic(root->left->left->left) + optimizeLogic(root->left->right->left);
             }
 
             //Check AOI21 NAND on the left
-            if(root->left->left->function == '@' && root->left->right->function == '!'){
+            if(root->left->left->function == '@' && root->left->right->function == '!' && root->left->left->visited == true && root->left->right->visited == true){
                 cost[5] = 7+optimizeLogic(root->left->left->left) + optimizeLogic(root->left->left->right)  + optimizeLogic(root->left->right->left);
             }
             //Check AOI21 NAND on the right - these 2 are mutally exclusive
-            if(root->left->left->function == '!' && root->left->right->function == '@'){
+            if(root->left->left->function == '!' && root->left->right->function == '@' && root->left->left->visited == true && root->left->right->visited == true){
                 cost[5] = 7+optimizeLogic(root->left->right->left) + optimizeLogic(root->left->right->right)  + optimizeLogic(root->left->left->left);
             }
 
             //Check for AIOLI (AOI22)
-            if(root->left->left->function == '@' && root->left->right->function == '@'){
+            if(root->left->left->function == '@' && root->left->right->function == '@' && root->left->left->visited == true && root->left->right->visited == true){
                 cost[6] = 7+optimizeLogic(root->left->right->left) + optimizeLogic(root->left->right->right)  + optimizeLogic(root->left->left->left) + optimizeLogic(root->left->right);
             }
         }
@@ -640,7 +650,7 @@ int optimizeLogic(logicNode* root){
         cost[1] = 3 + optimizeLogic(root->left) + optimizeLogic(root->right);
 
         //OR2
-        if(root->left->function == '!' && root->right->function == '!'){
+        if(root->left->function == '!' && root->right->function == '!' && root->left->visited == true && root->right->visited == true){
             cost[4] = 4+optimizeLogic(root->left->left) + optimizeLogic(root->right->left);
         }
     }
@@ -668,7 +678,6 @@ int main(){
 
     cout<<endl<<"now print the tree"<<endl;
 
-
     printTree(head);
 
     cout<<"now convert"<<endl<<endl<<endl<<endl<<endl;
@@ -683,7 +692,7 @@ int main(){
 
     int result = optimizeLogic(head);
 
-    cout<<"the cost is: "<<endl;
+    cout<<"the cost is: "<<result<<endl;
    
     outText(to_string(result));
 
