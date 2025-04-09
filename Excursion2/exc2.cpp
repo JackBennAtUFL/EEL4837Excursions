@@ -348,8 +348,8 @@ examples NAND2 becomes @
 //works
 void convertGate(logicNode* &root){
     
+    root->visited += 1;
     if(root->function == '*'){
-        root->visited += 1;
         //The AND logicNode becomes a not logicNode
         root->function = '!';
 
@@ -369,11 +369,9 @@ void convertGate(logicNode* &root){
     }
     //convert AND gates
     else if(root->function == '+'){
-
-        root->visited += 1;
         //The OR logicNode becomes a NAND2
         root->function = '@';
-
+        
         //Add not gates
         logicNode* not1 = new logicNode(root->net+"not1");
         not1->function = '!';
@@ -388,14 +386,11 @@ void convertGate(logicNode* &root){
         not2->right = nullptr;
         root->right = not2;
         not2->visited = 1;
-        
     }
-    //Don't do anything, no conversion needed, here for completeness 
-    else if(root->function == '!') root->visited += 1;
     return;
 }
 
-//Recursivly convert the tree
+//Recursivly convert the tree to NAND and NOT
 void convertToNandNot(logicNode* root){
     
     if(root == nullptr  || (root->left == nullptr && root->right == nullptr)) return;
