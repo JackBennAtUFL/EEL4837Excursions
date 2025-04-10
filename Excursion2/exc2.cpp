@@ -3,31 +3,22 @@
 #include <string>
 #include <vector>
 #include <sstream>
-#include <limits>
 #include <bits/stdc++.h>
-#include <stdlib.h>
 
+//Autograder does not like INT_MAX
 #define INT_MA 2147483647
-// #include <bits/stdc++.h> //I had a weird include path error so i commented out for now
 using namespace std; 
 
 struct logicNode
 {
     ///#this will be !,+,*, or the letter input
-    public:
     string net;
     char function; 
     logicNode* left; 
     logicNode* right; 
     //Count the number of inputs at a node
-    bool visited;
-    bool counted;
-    int costHere;
     logicNode(string n){
         net = n;
-        costHere = INT_MA;
-        visited = false;
-        counted = false;
     }
 };
 
@@ -40,26 +31,20 @@ string getText(string inFile) {
     ifstream myFile;
     myFile.open(inFile, ios::in);
 
-    if (myFile.is_open()) {
-        bool carReturn = false;
-        while (getline(myFile, line)) {
-            for (char c : line) {
-                net.push_back(c);
-            }
-            net.push_back(' ');
-        }
+    while (getline(myFile, line)) {
+        for (char c : line) net.push_back(c);
+        net.push_back(' ');
+    }
        
-        //pass stuff through a vector because autograder madness
-        vector<char> fixedNet;
-        for (char c : net) {
-            if (c != '\r')  fixedNet.push_back(c); 
-        }
-        myFile.close();
+    //pass stuff through a vector because autograder madness
+    vector<char> fixedNet;
+    for (char c : net) {
+        if (c != '\r')  fixedNet.push_back(c); 
+    }
+    myFile.close();
         
-        for(int i = 0;i<fixedNet.size();i++) newLine += fixedNet[i];
-        
-    } else cout << "Error: Bad input file" << endl;
-
+    for(int i = 0;i<fixedNet.size();i++) newLine += fixedNet[i];
+    
     return newLine;
 }
 
@@ -120,56 +105,36 @@ logicNode* genlogicNode(vector<string> netData, vector<vector<string>> & masterL
     // direct assignment: netLabel at [0] | "=" at [1] | assignment net at [2]                     
     logicNode* head = new logicNode(netData[0]);
 
-    if(netData.size() == 1){
-    
-        head->left = nullptr;
-        head->right = nullptr;
-        head->function = netData[0][0];
-        return head;
-    }
-
     //BASECASE
-    if(netData[1] == "INPUT" ){
-
+    if( netData.size() == 1 || netData[1] == "INPUT"){
         head->left = nullptr;
         head->right = nullptr;
         head->function = netData[0][0]; //Assigns the character input
         return head;
     }
-    else if(netData[1] == "="){
-        if(netData[2] == "NOT"){
-            head->function = '!';
+    else if(netData[2] == "NOT"){
+        head->function = '!';
 
-            //Adds the NOT logicNode to the left branch of the tree
-            head->left = genlogicNode(getNetInfo(netData[3], masterList), masterList);
-            head->right = nullptr;
-            return head;
-        }
-        else if(netData[2] == "AND"){
-            head->function = '*';
-            //Adds the first point to the left branch and the second point to the right branch
-            head->left = genlogicNode(getNetInfo(netData[3], masterList), masterList);
-            head->right = genlogicNode(getNetInfo(netData[4], masterList), masterList);
-            return head;
-        }
-        else if(netData[2] == "OR"){
-            
-            head->function = '+';
-            //Adds the first point to the left branch and the second point to the right branch
-            head->left = genlogicNode(getNetInfo(netData[3], masterList), masterList);
-            head->right = genlogicNode(getNetInfo(netData[4], masterList), masterList);
-            return head;
-        }
-
-        //If the proceeding operation is not a logic comparison (direct assignment)
-        head->function = '=';
-
-        head->left = genlogicNode(getNetInfo(netData[2], masterList), masterList);
+        //Adds the NOT logicNode to the left branch of the tree
+        head->left = genlogicNode(getNetInfo(netData[3], masterList), masterList);
         head->right = nullptr;
-
         return head;
     }
-    return nullptr;
+    else if(netData[2] == "AND" || (netData[2] == "OR") ){
+        if(netData[2] == "AND") head->function = '*';
+        else  head->function = '+';
+        //Adds the first point to the left branch and the second point to the right branch
+        head->left = genlogicNode(getNetInfo(netData[3], masterList), masterList);
+        head->right = genlogicNode(getNetInfo(netData[4], masterList), masterList);
+        return head;
+    }
+    //If the proceeding operation is not a logic comparison (direct assignment)
+    head->function = '=';
+
+    head->left = genlogicNode(getNetInfo(netData[2], masterList), masterList);
+    head->right = nullptr;
+
+    return head;
 }
 //-----***-----
 
@@ -178,7 +143,6 @@ logicNode* genlogicNode(vector<string> netData, vector<vector<string>> & masterL
 logicNode* genLogicTree(string fileName){
 
     //Generates the master list from the input file
-    string line;
     ifstream myfile;
     
     string text = getText(fileName);
@@ -188,16 +152,14 @@ logicNode* genLogicTree(string fileName){
 
     //takes care of the inputs
     for(int i = 8;i<text.find("OUTPUT")-2;i++){
-        
-        string tempStr1 = text.substr(i,1);
-        string tempStr2; 
+        string tempStr; 
         vector<string> row; 
         
         row.push_back(text.substr(i,1));
         i+=2;
-        while (text[i] != ' ') tempStr2.push_back(text[i++]);
+        while (text[i] != ' ') tempStr.push_back(text[i++]);
 
-        row.push_back(tempStr2);
+        row.push_back(tempStr);
         masterList.push_back(row);
     }
 
@@ -205,7 +167,7 @@ logicNode* genLogicTree(string fileName){
     vector<string> row1; 
     string keyVal = text.substr(text.find("OUTPUT")-2,1);
     row1.push_back(keyVal);
-    row1.push_back(text.substr(text.find("OUTPUT"),6));
+    row1.push_back("OUTPUT");
     masterList.push_back(row1);
 
     //now do the logic gates
@@ -214,105 +176,47 @@ logicNode* genLogicTree(string fileName){
         string nodeName;
         vector<string> row; 
 
-        if(text[i+1] != ' '){
-            nodeName = text.substr(i,2);
-            row.push_back(nodeName);
-            i+=3;
-        }
-        else{
-            nodeName = text.substr(i,1);
-            row.push_back(nodeName);
-            i+=2;
-        }
+        //is the net list 1 or 2 charecters long?
+        if(text[i+1] != ' ') nodeName = text.substr(i++,2);
+        else nodeName = text.substr(i,1);
+        
+        row.push_back(nodeName);
+        i+=2;
         
         string function;
         string in1;
         string in2;
-        vector<string> rowKey;
- 
         //Go here once you find the key value, which is the output
         //key value output at the end         
-        if(text.substr(i,1) == keyVal){           
-            rowKey.push_back(text.substr(i,1));
-
-            //push the equals
-            i+=2;
-            rowKey.push_back(text.substr(i,1));
-            i+=2;
-            
-             //if there is a NOT gate
-            if(text[i] == 'N'){
-                rowKey.push_back("NOT");
-                i+= 4;
-                while(text[i] != ' ') in1.push_back(text[i++]);
+        row.push_back(text.substr(i,1));    
         
-                rowKey.push_back(in1);
-                masterList.push_back(rowKey);
-            }
-            else if(text[i] == 'A'){
-                
-                rowKey.push_back("AND");
-                i+= 4;
-                while(text[i] != ' ') in1.push_back(text[i++]);
-                i++;
-                while(text[i] != ' ') in2.push_back(text[i++]);
-                
-                rowKey.push_back(in1);
-                rowKey.push_back(in2);
-                masterList.push_back(rowKey);
-            }
-            else if(text[i] == 'O'){
-                
-                rowKey.push_back("OR");
-                i+= 3;
-                while(text[i] != ' ') in1.push_back(text[i++]);
-                i++;
-                while(text[i] != ' ') in2.push_back(text[i++]);
-                
-                rowKey.push_back(in1);
-                rowKey.push_back(in2);
-                masterList.push_back(rowKey);     
-            }
-            break;
-        }
-        
-        //node name a = AND x z
-        //          ^
-        //push the equals
-        row.push_back(text.substr(i,1));
         i+=2;
-    
         //if there is a NOT gate
         if(text[i] == 'N'){
             row.push_back("NOT");
-            i+= 4;
+            i+=4;
             while(text[i] != ' ') in1.push_back(text[i++]);
 
             row.push_back(in1);
             masterList.push_back(row);
         }
-        else if(text[i] == 'A'){
-            
-            row.push_back("AND");
-            i+= 4;
-            while(text[i] != ' ') in1.push_back(text[i++]);
-            i++;
-            while(text[i] != ' ') in2.push_back(text[i++]);
-            
-            row.push_back(in1);
-            row.push_back(in2);
-            masterList.push_back(row);
-        }
-        else if(text[i] == 'O'){
-            row.push_back("OR");
-            i+= 3;
-            while(text[i] != ' ') in1.push_back(text[i++]);
-            i++;
-            while(text[i] != ' ') in2.push_back(text[i++]);
-            
-            row.push_back(in1);
-            row.push_back(in2);
-            masterList.push_back(row);
+        else{ 
+            if(text[i] == 'A' || text[i] == 'O'){
+                if(text[i] == 'A'){
+                    row.push_back("AND");
+                    i++;
+                }
+                else row.push_back("OR");
+                i+=3;
+
+                while(text[i] != ' ') in1.push_back(text[i++]);
+                i++;
+                while(text[i] != ' ') in2.push_back(text[i++]);
+                
+                row.push_back(in1);
+                row.push_back(in2);
+                masterList.push_back(row);
+            }
         }
     }
 
@@ -345,10 +249,8 @@ examples NAND2 becomes @
      AND--- =     NAND----NOT---          OR---  =          NAND---
 ----/          ----/                 ----/          ---NOT---/ 
 */
-//works
 void convertGate(logicNode* &root){
     
-    root->visited += 1;
     if(root->function == '*'){
         //The AND logicNode becomes a not logicNode
         root->function = '!';
@@ -356,13 +258,10 @@ void convertGate(logicNode* &root){
         //The name should not matter at this point
         logicNode* nandInsert = new logicNode(root->net+"NAND");
 
-        //This calls it nand2 
+        //This calls it nand2 NAND now points to what AND inputs were
         nandInsert->function = '@';
-        nandInsert->visited = 1;
-        //NAND now points to what AND inputs were
         nandInsert->left = root->left;
         nandInsert->right = root->right;
-
         root->left = nandInsert;
         //The right input to a not gate does not exist
         root->right  = nullptr; 
@@ -373,19 +272,17 @@ void convertGate(logicNode* &root){
         root->function = '@';
         
         //Add not gates
-        logicNode* not1 = new logicNode(root->net+"not1");
+        logicNode* not1 = new logicNode(root->net+"n1");
         not1->function = '!';
         not1->left = root->left;
         not1->right  = nullptr;
         root->left = not1;
-        not1->visited = 1;
 
-        logicNode* not2 = new logicNode(root->net+"not2");
+        logicNode* not2 = new logicNode(root->net+"n2");
         not2->function = '!';
         not2->left = root->right;
         not2->right = nullptr;
         root->right = not2;
-        not2->visited = 1;
     }
     return;
 }
@@ -405,50 +302,45 @@ int optimizeLogic(logicNode* root){
     //Return 0 if you get to the end
     if(root == nullptr || (root->left == nullptr && root->right == nullptr)) return 0;
  
-    //Return minimum value at gave if already calculated invalid if INT_MA
-    if(root->costHere != INT_MA) return root->costHere;
-    
-    int cost[8];
     //use INT MAX to avoid invalid paths
-    for (int i = 0; i < 8; i++) cost[i] = INT_MA;
+    int cost[8] = {INT_MA,INT_MA,INT_MA,INT_MA,INT_MA,INT_MA,INT_MA,INT_MA};
     
     //now check for match the cost the best result will be taken at each stage going up
     //Deal with direct assignment
-    if(root->function == '=') cost[7] = 0 + optimizeLogic(root->left);
+    if(root->function == '=') cost[7] = optimizeLogic(root->left);
     
     ////NOT
     else if(root->function == '!'){
        cost[0] = 2+optimizeLogic(root->left);
 
        //Check AND2
-        if(root->left->function == '@' && root->visited == true){
+        if(root->left->function == '@'){
             cost[2] = 4+optimizeLogic(root->left->left) + optimizeLogic(root->left->right);
 
             //Check NOR2
-            if(root->left->left->function == '!' && root->left->right->function == '!' && root->left->left->visited == true && root->left->right->visited == true){
+            if(root->left->left->function == '!' && root->left->right->function == '!' ){
                 cost[3] = 6+optimizeLogic(root->left->left->left) + optimizeLogic(root->left->right->left);
             }
             //Check AOI21 NAND on the left
-            if(root->left->left->function == '@' && root->left->right->function == '!' && root->left->left->visited == true && root->left->right->visited == true){
+            if(root->left->left->function == '@' && root->left->right->function == '!' ){
                 cost[5] = 7+optimizeLogic(root->left->left->left) + optimizeLogic(root->left->left->right)  + optimizeLogic(root->left->right->left);
             }
             //Check AOI21 NAND on the right - these 2 are mutally exclusive
-            if(root->left->left->function == '!' && root->left->right->function == '@' && root->left->left->visited == true && root->left->right->visited == true){
+            if(root->left->left->function == '!' && root->left->right->function == '@' ){
                 cost[5] = 7+optimizeLogic(root->left->right->left) + optimizeLogic(root->left->right->right)  + optimizeLogic(root->left->left->left);
             }
             //Check for AIOLI (AOI22)
-            if(root->left->left->function == '@' && root->left->right->function == '@' && root->left->left->visited == true && root->left->right->visited == true){
+            if(root->left->left->function == '@' && root->left->right->function == '@'){
                 cost[6] = 7+optimizeLogic(root->left->right->left) + optimizeLogic(root->left->right->right)  + optimizeLogic(root->left->left->left) + optimizeLogic(root->left->right);
             }
-        }
-          
+        } 
     }
     //NAND2 then check OR2 from there
     else if(root->function == '@'){
         cost[1] = 3 + optimizeLogic(root->left) + optimizeLogic(root->right);
 
         //OR2
-        if(root->left->function == '!' && root->right->function == '!' && root->left->visited == true && root->right->visited == true){
+        if(root->left->function == '!' && root->right->function == '!'){
             cost[4] = 4+optimizeLogic(root->left->left) + optimizeLogic(root->right->left);
         }
     }
@@ -463,7 +355,7 @@ int optimizeLogic(logicNode* root){
 
     return localMin;
 }
-
+//such a nice main function 
 int main(){
     //There are some logicNodes that are reused but this would increase the required number of gates so for now it just ignores Repeating instances of a logicNode 
     logicNode* head = genLogicTree("input.txt");
