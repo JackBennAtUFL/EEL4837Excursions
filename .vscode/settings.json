@@ -13,6 +13,7 @@
         "ios": "cpp",
         "fstream": "cpp",
         "stdexcept": "cpp",
-        "xutility": "cpp"
+        "xutility": "cpp",
+        "xiosbase": "cpp"
     }
 }

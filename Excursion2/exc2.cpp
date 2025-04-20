@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include <sstream>
-#include <bits/stdc++.h>
+//#include <bits/stdc++.h>
 
 //Autograder does not like INT_MAX
 #define INT_MA 2147483647
@@ -71,8 +71,8 @@ string getOutputNet(vector<vector<string>> &masterList){
             return outputNet;
         }
     }
-    //this is useless and is only to prevent errors?
-    return "failed to find";
+    //this is useless and is only to prevent errors
+    return "failed to find output node";
 }
 //-----***-----
 
